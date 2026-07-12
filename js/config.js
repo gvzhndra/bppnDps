@@ -1,6 +1,6 @@
 // ================= KONFIGURASI =================
 // Ganti dengan URL Web App hasil deploy Apps Script kamu (lihat Code.gs)
-const API_URL = "https://script.google.com/macros/s/AKfycbz_RG7cDsnaTIR-dT4YpiOpcHZFuB5BFGh10E4fS4CyOLSF9YT8uYEyQMipm54J64c0cQ/exec";
+const API_URL = "https://script.google.com/macros/s/AKfycbwQmsq806xBoepakiGemP097w_DSsVgCd8S87KBZ_M23aiWnLp24o7VbqP5JT0NKJ6r/exec";
 // =================================================
 
 const statusColor = {
