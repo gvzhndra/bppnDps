@@ -35,8 +35,8 @@
  *                 menghapus barisnya (jejak tetap ada).
  *
  * 4) Tab "LogEkspor" -- TIDAK PERLU DIBUAT MANUAL. Otomatis dibuat sistem
- *    (header + baris log) begitu ada admin yang pertama kali pakai fitur
- *    "Ekspor ke Google Sheets" di dashboard.
+ *    (header: timestamp | username | nama_file | jumlah_aset | jumlah_riwayat)
+ *    begitu ada admin yang pertama kali pakai fitur "Ekspor ke Excel" di dashboard.
  *
  * DEPLOY:
  * Deploy > New deployment > Web app
@@ -45,19 +45,20 @@
  * Salin URL Web App ke API_URL di config.js dashboard.
  *
  * IZIN TAMBAHAN UNTUK FITUR EKSPOR:
- * exportData_() memakai DriveApp untuk bikin Spreadsheet baru & atur sharing-nya.
- * Pertama kali fitur "Ekspor ke Google Sheets" dipakai, Google mungkin minta
- * otorisasi ulang (izin akses Drive) -- klik "Continue"/"Allow" seperti biasa.
+ * exportData_() bikin spreadsheet sementara (buat dikonversi ke .xlsx lewat
+ * endpoint export Google Sheets), lalu langsung dihapus lagi -- yang dikirim
+ * ke browser cuma bytes file .xlsx-nya (auto-download di sisi client, tidak
+ * ada file yang tersisa/dibagikan di Drive). Pertama kali fitur ini dipakai,
+ * Google mungkin minta otorisasi ulang (izin akses Drive/Sheets) -- klik
+ * "Continue"/"Allow" seperti biasa.
  *
  * CATATAN KEAMANAN:
  * Ini pakai Google Sheets sebagai "database", jadi bukan sistem auth kelas
  * enterprise. Password disimpan sebagai hash SHA-256 (bukan plain text), dan
  * setiap aksi tulis (create/update/delete/riwayat/ekspor) divalidasi ulang di
- * server ini berdasarkan role, bukan cuma disembunyikan di tampilan. Spreadsheet
- * hasil ekspor dibagikan sebagai "siapa saja yang punya link bisa lihat" --
- * jadi perlakukan link hasil ekspor itu seperti dokumen resmi, jangan disebar
- * sembarangan. Untuk penggunaan internal tim kecil ini cukup aman; kalau
- * datanya makin sensitif, pertimbangkan migrasi ke backend yang lebih matang.
+ * server ini berdasarkan role, bukan cuma disembunyikan di tampilan. Untuk
+ * penggunaan internal tim kecil ini cukup aman; kalau datanya makin sensitif,
+ * pertimbangkan migrasi ke backend yang lebih matang.
  */
 
 const SHEET_ASET = "Aset";
@@ -412,39 +413,49 @@ function exportData_(username) {
   const asetData = asetSheet.getDataRange().getValues();
   const riwayatData = riwayatSheet ? riwayatSheet.getDataRange().getValues() : [['id', 'asset_id', 'no_dokumen', 'jenis_dokumen', 'tanggal', 'catatan']];
 
-  const timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm');
-  const newSs = SpreadsheetApp.create('Ekspor Aset eks BPPN - ' + timestamp);
+  const timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH-mm');
+  // Bikin spreadsheet sementara cuma buat "media" konversi ke xlsx -- dihapus lagi di akhir.
+  const tempSs = SpreadsheetApp.create('TEMP_export_' + timestamp);
+  const tempId = tempSs.getId();
 
-  const asetSheetNew = newSs.getSheets()[0];
+  const asetSheetNew = tempSs.getSheets()[0];
   asetSheetNew.setName('Aset');
   if (asetData.length) asetSheetNew.getRange(1, 1, asetData.length, asetData[0].length).setValues(asetData);
 
-  const riwayatSheetNew = newSs.insertSheet('Riwayat');
+  const riwayatSheetNew = tempSs.insertSheet('Riwayat');
   if (riwayatData.length) riwayatSheetNew.getRange(1, 1, riwayatData.length, riwayatData[0].length).setValues(riwayatData);
 
-  // Supaya admin (siapa pun dia, bukan cuma akun "Me" yang deploy script ini)
-  // bisa langsung buka hasil ekspornya lewat link.
+  SpreadsheetApp.flush();
+
+  // Konversi ke xlsx lewat endpoint export bawaan Google Sheets, pakai token OAuth
+  // milik eksekusi script ini (scope Drive/Sheets sudah otomatis ke-otorisasi).
+  const exportUrl = 'https://docs.google.com/spreadsheets/d/' + tempId + '/export?format=xlsx';
+  const response = UrlFetchApp.fetch(exportUrl, {
+    headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() }
+  });
+  const base64 = Utilities.base64Encode(response.getBlob().getBytes());
+
+  // Bersihkan file sementara -- yang dipakai user cuma file .xlsx hasil unduhan.
   try {
-    DriveApp.getFileById(newSs.getId()).setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
-  } catch (shareErr) {
-    // Kalau gagal set sharing (misal belum authorize Drive scope), tetap lanjut --
-    // filenya tetap ada, admin cuma perlu buka lewat akun Google yang sama dengan
-    // yang deploy Apps Script ini.
+    DriveApp.getFileById(tempId).setTrashed(true);
+  } catch (cleanupErr) {
+    // Kalau gagal dihapus, biarkan saja -- tidak fatal, cuma numpuk di Drive "Me".
   }
 
   const jumlahAset = Math.max(0, asetData.length - 1);
   const jumlahRiwayat = Math.max(0, riwayatData.length - 1);
-  logExport_(username, newSs.getUrl(), jumlahAset, jumlahRiwayat);
+  const filename = 'ekspor-aset-eks-bppn-' + Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyyMMdd-HHmm') + '.xlsx';
+  logExport_(username, filename, jumlahAset, jumlahRiwayat);
 
-  return { ok: true, url: newSs.getUrl(), jumlahAset: jumlahAset, jumlahRiwayat: jumlahRiwayat };
+  return { ok: true, filename: filename, base64: base64, jumlahAset: jumlahAset, jumlahRiwayat: jumlahRiwayat };
 }
 
-function logExport_(username, url, jumlahAset, jumlahRiwayat) {
+function logExport_(username, filename, jumlahAset, jumlahRiwayat) {
   let sheet = getSheet_(SHEET_LOG);
   if (!sheet) {
     sheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet(SHEET_LOG);
-    sheet.appendRow(['timestamp', 'username', 'link_hasil_ekspor', 'jumlah_aset', 'jumlah_riwayat']);
+    sheet.appendRow(['timestamp', 'username', 'nama_file', 'jumlah_aset', 'jumlah_riwayat']);
   }
   const timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
-  sheet.appendRow([timestamp, username, url, jumlahAset, jumlahRiwayat]);
+  sheet.appendRow([timestamp, username, filename, jumlahAset, jumlahRiwayat]);
 }

@@ -302,7 +302,7 @@ function renderViewPanel(a){
     ? `<div class="view-row"><span class="view-label">Alasan selesai</span><span class="view-value">${escapeHtml(a.props.alasan_selesai_penitipan)}</span></div>`
     : '';
   const linkFolderRow = a.props.link_folder
-    ? `<div class="view-row"><span class="view-label">Folder berkas</span><span class="view-value"><a href="${escapeHtml(a.props.link_folder)}" target="_blank" rel="noopener">Buka folder ↗</a></span></div>`
+    ? `<div class="view-row"><span class="view-label">Folder berkas</span><span class="view-value"><a href="${escapeHtml(a.props.link_folder)}" target="_blank" rel="noopener" style="color:#1F78B4;">Link dokumen</a></span></div>`
     : '';
 
   const actionButtons = isAdmin() ? `
@@ -324,6 +324,8 @@ function renderViewPanel(a){
   const panel = document.getElementById('sidePanel');
   panel.innerHTML = `
     <h3>Detail aset ${a.geomType === "point" ? '<span class="badge" style="background:#6B7280;">titik</span>' : '<span class="badge" style="background:#4C8C3F;">poligon</span>'}</h3>
+    <div class="view-row"><span class="view-label">ID Sistem</span><span class="view-value" style="font-family:monospace;font-size:11px;">${escapeHtml(a.id)}</span></div>
+    <p class="small-note" style="margin:-4px 0 8px;">↑ Ini yang harus dipakai sebagai <code>asset_id</code> kalau menambah riwayat manual lewat tab Riwayat di Sheets (bukan kode_aset).</p>
     <div class="view-row"><span class="view-label">Kode aset</span><span class="view-value">${escapeHtml(a.props.kode_aset || "-")}</span></div>
     <div class="view-row"><span class="view-label">Lokasi</span><span class="view-value">${escapeHtml(a.props.lokasi || "-")}</span></div>
     <div class="view-row"><span class="view-label">Luas (m²)</span><span class="view-value">${Number(a.props.luas||0).toLocaleString('id-ID')}</span></div>
@@ -409,21 +411,25 @@ async function loadAndRenderHistory(assetId){
 
 function renderEditPanel(a){
 
-  const geomSection = a.geomType === "point" ? `
-    <div class="row2">
-      <div class="field"><label>Latitude</label><input type="number" step="0.000001" id="f-lat" value="${a.point[0]}"></div>
-      <div class="field"><label>Longitude</label><input type="number" step="0.000001" id="f-lng" value="${a.point[1]}"></div>
-    </div>
+  const geojsonBox = `
     <div class="field" style="background:#F7F9FA;border:1px dashed var(--border);border-radius:6px;padding:10px;">
-      <label style="margin-bottom:6px;">Sudah ada hasil trace GeoJSON untuk aset ini? Tempel di sini:</label>
+      <label style="margin-bottom:6px;">${a.geomType === "point" ? "Sudah ada hasil trace GeoJSON untuk aset ini? Tempel di sini:" : "Mau ganti bentuk poligon (tanpa hapus aset, riwayat tetap tersambung)? Tempel GeoJSON baru di sini:"}</label>
       <textarea id="f-geojson" rows="4" placeholder='{"type":"Feature","geometry":{"type":"Polygon","coordinates":[...]}}'></textarea>
       <div class="actions-row" style="margin-top:8px;">
         <button id="btnApplyGeojson" class="primary" style="font-size:12px;">Terapkan sebagai poligon</button>
       </div>
     </div>
+  `;
+
+  const geomSection = a.geomType === "point" ? `
+    <div class="row2">
+      <div class="field"><label>Latitude</label><input type="number" step="0.000001" id="f-lat" value="${a.point[0]}"></div>
+      <div class="field"><label>Longitude</label><input type="number" step="0.000001" id="f-lng" value="${a.point[1]}"></div>
+    </div>
+    ${geojsonBox}
   ` : (() => {
       const c = computeCentroid(a.coords);
-      return `<div class="field"><p class="small-note">Geometri: poligon (${a.coords.length} titik), titik tengah (centroid) otomatis: <strong>${c[0].toFixed(6)}, ${c[1].toFixed(6)}</strong>. Untuk mengganti bentuk, hapus aset ini dan tambahkan ulang, atau gambar ulang lewat "Gambar poligon baru".</p></div>`;
+      return `<div class="field"><p class="small-note">Geometri: poligon (${a.coords.length} titik), titik tengah (centroid) otomatis: <strong>${c[0].toFixed(6)}, ${c[1].toFixed(6)}</strong>.</p></div>${geojsonBox}`;
     })();
 
   const extraKeys = sheetHeaders.filter(h => RESERVED_COLUMNS.indexOf(h) === -1 && CORE_PROPS.indexOf(h) === -1);
@@ -471,7 +477,7 @@ function renderEditPanel(a){
       <div class="field"><label>Jenis dokumen</label><input type="text" id="f-jenis_dokumen" value="${escapeHtml(a.props.jenis_dokumen || "")}"></div>
     </div>
     <div class="field"><label>Catatan</label><textarea id="f-catatan" rows="3">${escapeHtml(a.props.catatan)}</textarea></div>
-    <div class="field"><label>Link folder berkas (Google Drive, satu per aset)</label><input type="text" id="f-link_folder" value="${escapeHtml(a.props.link_folder || "")}" placeholder="https://drive.google.com/drive/folders/..."></div>
+    <div class="field"><label>Link folder berkas (OneDrive, satu per aset)</label><input type="text" id="f-link_folder" value="${escapeHtml(a.props.link_folder || "")}" placeholder="https://onedrive.live.com/... atau link SharePoint"></div>
     ${geomSection}
     ${extraSection}
     <div class="actions-row">
@@ -519,8 +525,7 @@ function renderEditPanel(a){
   document.getElementById('btnCancelEdit').addEventListener('click', () => {
     selectAsset(a.id, 'view');
   });
-  if(a.geomType === "point"){
-    document.getElementById('btnApplyGeojson').addEventListener('click', () => {
+  document.getElementById('btnApplyGeojson').addEventListener('click', () => {
       const raw = document.getElementById('f-geojson').value.trim();
       if(!raw) return;
       try{
@@ -566,7 +571,6 @@ function renderEditPanel(a){
         alert("GeoJSON tidak valid: " + e.message);
       }
     });
-  }
 }
 
 // ============================
@@ -601,13 +605,8 @@ function applyRoleUI(){
 
 document.getElementById('btnExportSheets').addEventListener('click', async () => {
   if(!isAdmin()) return;
-  if(!confirm('Buat salinan data (Aset & Riwayat) ke Google Sheet baru?')) return;
-  const res = await exportToSheets();
-  if(res && res.url){
-    if(confirm('Ekspor berhasil. Buka Sheet hasil ekspor di tab baru sekarang?')){
-      window.open(res.url, '_blank');
-    }
-  }
+  if(!confirm('Unduh data (Aset & Riwayat) sebagai file Excel?')) return;
+  await exportToExcel();
 });
 
 document.getElementById('btnLogout').addEventListener('click', () => {

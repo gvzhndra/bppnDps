@@ -15,6 +15,16 @@ function hideLoading(){
   if(overlay) overlay.classList.remove('open');
 }
 
+let toastTimer = null;
+function showToast(text){
+  const toast = document.getElementById('toastMessage');
+  if(!toast) return;
+  toast.textContent = text;
+  toast.classList.add('show');
+  if(toastTimer) clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => toast.classList.remove('show'), 2500);
+}
+
 async function apiGet(action, extraParams){
   const params = new URLSearchParams(Object.assign(
     { action: action || "getAset", token: getToken() || "" },
@@ -68,6 +78,8 @@ async function persistAsset(a){
     if(!res.ok){
       if(isSessionError(res.error)){ handleSessionExpired(); return; }
       alert("Gagal menyimpan ke Google Sheets: " + res.error);
+    } else {
+      showToast('✓ Tersimpan ke Google Sheets');
     }
   } catch(err){
     alert("Gagal menyimpan ke Google Sheets: " + err);
@@ -83,6 +95,8 @@ async function deleteAssetOnServer(id){
     if(!res.ok){
       if(isSessionError(res.error)){ handleSessionExpired(); return; }
       alert("Gagal menghapus di Google Sheets: " + res.error);
+    } else {
+      showToast('✓ Aset dihapus');
     }
   } catch(err){
     alert("Gagal menghapus di Google Sheets: " + err);
@@ -117,6 +131,7 @@ async function addHistoryEntry(entry){
       alert("Gagal menambah riwayat: " + res.error);
       return null;
     }
+    showToast('✓ Riwayat ditambahkan');
     return res;
   } catch(err){
     alert("Gagal menambah riwayat: " + err);
@@ -134,6 +149,7 @@ async function deleteHistoryEntry(id){
       alert("Gagal menghapus riwayat: " + res.error);
       return false;
     }
+    showToast('✓ Riwayat dihapus');
     return true;
   } catch(err){
     alert("Gagal menghapus riwayat: " + err);
@@ -144,10 +160,10 @@ async function deleteHistoryEntry(id){
 }
 
 // ============================
-// Ekspor ke Google Sheets (admin-only, ditegakkan juga di Code.gs)
+// Ekspor ke Excel (admin-only, ditegakkan juga di Code.gs)
 // ============================
-async function exportToSheets(){
-  showLoading('Menyiapkan ekspor...');
+async function exportToExcel(){
+  showLoading('Menyiapkan file Excel...');
   try{
     const res = await apiSend("exportData", {});
     if(!res.ok){
@@ -155,6 +171,20 @@ async function exportToSheets(){
       alert("Gagal ekspor: " + res.error);
       return null;
     }
+    // res.base64 berisi file .xlsx, decode lalu trigger download langsung
+    const byteChars = atob(res.base64);
+    const byteNumbers = new Array(byteChars.length);
+    for(let i = 0; i < byteChars.length; i++){
+      byteNumbers[i] = byteChars.charCodeAt(i);
+    }
+    const blob = new Blob([new Uint8Array(byteNumbers)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = res.filename || 'ekspor-aset-eks-bppn.xlsx';
+    link.click();
+    URL.revokeObjectURL(url);
+    showToast('✓ Excel diunduh');
     return res;
   } catch(err){
     alert("Gagal ekspor: " + err);
