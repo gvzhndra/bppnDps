@@ -392,7 +392,24 @@ function renderEditPanel(a){
       if(!raw) return;
       try{
         const gj = JSON.parse(raw);
-        const geom = gj.type === "Feature" ? gj.geometry : gj;
+        let feature = null;
+        let geom;
+        if(gj.type === "FeatureCollection"){
+          if(!gj.features || !gj.features.length){
+            alert("FeatureCollection tidak berisi feature apa pun.");
+            return;
+          }
+          if(gj.features.length > 1){
+            alert("GeoJSON ini berisi " + gj.features.length + " feature. Cuma feature pertama yang akan dipakai untuk aset ini.");
+          }
+          feature = gj.features[0];
+          geom = feature.geometry;
+        } else if(gj.type === "Feature"){
+          feature = gj;
+          geom = gj.geometry;
+        } else {
+          geom = gj;
+        }
         let coords = [];
         if(geom.type === "Polygon"){
           coords = geom.coordinates[0].map(c => [c[1], c[0]]);
@@ -405,8 +422,8 @@ function renderEditPanel(a){
         a.geomType = "polygon";
         a.coords = coords;
         delete a.point;
-        if(gj.type === "Feature" && gj.properties){
-          const p = gj.properties;
+        if(feature && feature.properties){
+          const p = feature.properties;
           if(p.luas || p.area) a.props.luas = p.luas || p.area;
         }
         renderAll();
@@ -434,7 +451,7 @@ function renderUserBadge(){
     if(btnLogout) btnLogout.style.display = 'none';
     return;
   }
-  if(userInfo) userInfo.textContent = (session.nama || session.username) + " (" + (session.role === ROLES.ADMIN ? "admin" : "viewer") + ")";
+  if(userInfo) userInfo.textContent = "Halo, " + (session.nama || session.username) + "! (" + (session.role === ROLES.ADMIN ? "admin" : "viewer") + ")";
   if(btnLogout) btnLogout.style.display = 'inline-block';
 }
 
