@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dashboard Aset eks BPPN — KPKNL Denpasar</title>
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script>guardDashboardPage();</script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>Dashboard Aset eks BPPN</h1>
+    <p>Wilayah kerja KPKNL Denpasar</p>
+  </div>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <span id="userInfo" style="font-size:12px;color:#C9D6E3;margin-right:4px;"></span>
+    <button id="btnLogout" style="display:none;">Keluar</button>
+    <button id="btnRefresh">Muat ulang dari Sheets</button>
+    <button id="btnExport" class="primary">Unduh GeoJSON</button>
+  </div>
+</header>
+
+<div class="toolbar">
+  <input type="text" id="search" placeholder="Cari kode aset, lokasi, atau status..." style="width:260px;">
+  <select id="filterStatus">
+    <option value="all">Semua status</option>
+    <option value="Dalam Penitipan">Dalam Penitipan</option>
+    <option value="Penitipan Berakhir">Penitipan Berakhir</option>
+    <option value="Pemanfaatan">Pemanfaatan</option>
+    <option value="Bermasalah hukum">Bermasalah hukum</option>
+  </select>
+  <!-- <button id="btnDraw" disabled>Gambar poligon baru</button> -->
+</div>
+
+<div class="legend">
+  <span><span class="dot" style="background:var(--aktif)"></span>Dalam Penitipan</span>
+  <span><span class="dot" style="background:var(--lelang)"></span>Penitipan Berakhir</span>
+  <span><span class="dot" style="background:var(--terjual)"></span>Pemanfaatan</span>
+  <span><span class="dot" style="background:var(--masalah)"></span>Bermasalah hukum</span>
+</div>
+
+<div class="stats">
+  <div class="stat"><span>Total aset</span><strong id="statTotal">0</strong></div>
+  <div class="stat"><span>Total luas (m²)</span><strong id="statLuas">0</strong></div>
+  <div class="stat"><span>Belum Punya Koordinat</span><strong id="statTitik">0</strong></div>
+  <div class="stat"><span>Batas Belum Ditemukan</span><strong id="statPolygon">0</strong></div>
+</div>
+
+<div class="main">
+  <div id="map"></div>
+  <div class="panel" id="sidePanel">
+    <div class="empty-hint">Belum ada aset yang dipilih.
+      <br><br>
+      Pilih salah satu aset pada tabel di bawah.
+    </div>
+  </div>
+</div>
+
+<div class="table-wrap">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
+    <h3 style="margin:0;">Daftar aset</h3>
+    <button id="btnAddPoint" class="primary">+ Tambah aset</button>
+  </div>
+  <p class="small-note" style="margin-top:-4px;">Belum ada GeoJSON? Tambah aset sebagai titik dulu, isi koordinatnya manual, lalu tempel GeoJSON poligon belakangan lewat panel edit begitu hasil trace-nya siap.</p>
+  <table>
+    <thead>
+      <tr>
+        <th>Kode Aset</th>
+        <th>Lokasi</th>
+        <th>Geometri</th>
+        <th>Luas (m²)</th>
+        <th>Status</th>
+        <th>No. Dokumen</th>
+        <th>Jenis Dokumen</th>
+        <th>Aksi</th></tr>
+    </thead>
+    <tbody id="tableBody"></tbody>
+  </table>
+</div>
+
+
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+<script src="js/api.js"></script>
+<script src="js/app.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Masuk — Dashboard Aset eks BPPN</title>
+<script src="js/config.js"></script>
+<script src="js/auth.js"></script>
+<script>redirectIfLoggedIn();</script>
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body style="min-height:100vh;display:flex;align-items:center;justify-content:center;">
+
+  <div class="modal" style="width:340px;box-shadow:0 4px 24px rgba(0,0,0,0.10);">
+    <h3 style="margin-bottom:2px;">Masuk ke Dashboard</h3>
+    <p class="small-note" style="margin-top:0;margin-bottom:16px;">Dashboard Aset eks BPPN — KPKNL Denpasar</p>
+    <div class="field"><label>Username</label><input type="text" id="loginUsername" autocomplete="username"></div>
+    <div class="field"><label>Password</label><input type="password" id="loginPassword" autocomplete="current-password"></div>
+    <div id="loginError" style="color:var(--masalah);font-size:12px;margin-bottom:6px;display:none;"></div>
+    <div class="modal-actions">
+      <button class="primary" id="btnLogin" style="width:100%;">Masuk</button>
+    </div>
+  </div>
+
+<script src="js/login.js"></script>
+</body>
+</html>
