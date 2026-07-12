@@ -2,6 +2,19 @@
 // Komunikasi dengan Apps Script
 // (fungsi sesi/login ada di js/auth.js, dipakai bersama index.html & login.html)
 // ============================
+
+// ---- Overlay loading (freeze layar saat ada operasi simpan/hapus/ekspor) ----
+function showLoading(text){
+  const overlay = document.getElementById('loadingOverlay');
+  const textEl = document.getElementById('loadingText');
+  if(textEl) textEl.textContent = text || 'Memproses...';
+  if(overlay) overlay.classList.add('open');
+}
+function hideLoading(){
+  const overlay = document.getElementById('loadingOverlay');
+  if(overlay) overlay.classList.remove('open');
+}
+
 async function apiGet(action, extraParams){
   const params = new URLSearchParams(Object.assign(
     { action: action || "getAset", token: getToken() || "" },
@@ -25,6 +38,7 @@ async function loadFromServer(){
       '<div class="empty-hint">Dashboard belum tersambung ke Google Sheets. Isi API_URL di bagian atas kode dashboard (setelah Apps Script di-deploy) untuk mulai memuat & menyimpan data dari Sheets.</div>';
     return;
   }
+  showLoading('Memuat data...');
   try{
     const res = await apiGet("getAset");
     if(!res.ok){
@@ -41,11 +55,14 @@ async function loadFromServer(){
     renderAll();
   } catch(err){
     alert("Tidak bisa terhubung ke Apps Script. Cek kembali API_URL dan status deployment.\n" + err);
+  } finally {
+    hideLoading();
   }
 }
 
 async function persistAsset(a){
   if(API_URL.indexOf("GANTI_DENGAN_URL") !== -1) return;
+  showLoading('Menyimpan aset...');
   try{
     const res = await apiSend("update", { asset: { id:a.id, geomType:a.geomType, geometry: internalToGeometry(a), props: a.props } });
     if(!res.ok){
@@ -54,10 +71,13 @@ async function persistAsset(a){
     }
   } catch(err){
     alert("Gagal menyimpan ke Google Sheets: " + err);
+  } finally {
+    hideLoading();
   }
 }
 async function deleteAssetOnServer(id){
   if(API_URL.indexOf("GANTI_DENGAN_URL") !== -1) return;
+  showLoading('Menghapus aset...');
   try{
     const res = await apiSend("delete", { id });
     if(!res.ok){
@@ -66,6 +86,8 @@ async function deleteAssetOnServer(id){
     }
   } catch(err){
     alert("Gagal menghapus di Google Sheets: " + err);
+  } finally {
+    hideLoading();
   }
 }
 
@@ -87,6 +109,7 @@ async function fetchHistory(assetId){
   }
 }
 async function addHistoryEntry(entry){
+  showLoading('Menambah riwayat...');
   try{
     const res = await apiSend("addHistory", { entry });
     if(!res.ok){
@@ -98,9 +121,12 @@ async function addHistoryEntry(entry){
   } catch(err){
     alert("Gagal menambah riwayat: " + err);
     return null;
+  } finally {
+    hideLoading();
   }
 }
 async function deleteHistoryEntry(id){
+  showLoading('Menghapus riwayat...');
   try{
     const res = await apiSend("deleteHistory", { id });
     if(!res.ok){
@@ -112,5 +138,28 @@ async function deleteHistoryEntry(id){
   } catch(err){
     alert("Gagal menghapus riwayat: " + err);
     return false;
+  } finally {
+    hideLoading();
+  }
+}
+
+// ============================
+// Ekspor ke Google Sheets (admin-only, ditegakkan juga di Code.gs)
+// ============================
+async function exportToSheets(){
+  showLoading('Menyiapkan ekspor...');
+  try{
+    const res = await apiSend("exportData", {});
+    if(!res.ok){
+      if(isSessionError(res.error)){ handleSessionExpired(); return null; }
+      alert("Gagal ekspor: " + res.error);
+      return null;
+    }
+    return res;
+  } catch(err){
+    alert("Gagal ekspor: " + err);
+    return null;
+  } finally {
+    hideLoading();
   }
 }

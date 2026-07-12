@@ -22,6 +22,7 @@
     <span id="userInfo" style="font-size:12px;color:#C9D6E3;margin-right:4px;"></span>
     <button id="btnLogout" style="display:none;">Keluar</button>
     <button id="btnRefresh">Muat ulang dari Sheets</button>
+    <button id="btnExportSheets" class="primary">Ekspor ke Google Sheets</button>
     <button id="btnExport" class="primary">Unduh GeoJSON</button>
   </div>
 </header>
@@ -32,17 +33,16 @@
     <option value="all">Semua status</option>
     <option value="Dalam Penitipan">Dalam Penitipan</option>
     <option value="Penitipan Berakhir">Penitipan Berakhir</option>
-    <option value="Pemanfaatan">Pemanfaatan</option>
-    <option value="Bermasalah hukum">Bermasalah hukum</option>
   </select>
   <!-- <button id="btnDraw" disabled>Gambar poligon baru</button> -->
 </div>
 
 <div class="legend">
-  <span><span class="dot" style="background:var(--aktif)"></span>Dalam Penitipan</span>
-  <span><span class="dot" style="background:var(--lelang)"></span>Penitipan Berakhir</span>
-  <span><span class="dot" style="background:var(--terjual)"></span>Pemanfaatan</span>
-  <span><span class="dot" style="background:var(--masalah)"></span>Bermasalah hukum</span>
+  <span><span class="dot" style="background:#4C8C3F"></span>Dalam Penitipan</span>
+  <span><span class="dot" style="background:#B8790F"></span>Penitipan Berakhir</span>
+  <span><span class="dot" style="background:#94A3B8"></span>Kategori: Belum Dimanfaatkan</span>
+  <span><span class="dot" style="background:#1F78B4"></span>Kategori: Pemanfaatan</span>
+  <span><span class="dot" style="background:#B23A3A"></span>Kategori: Bermasalah Hukum</span>
 </div>
 
 <div class="stats">
@@ -50,6 +50,14 @@
   <div class="stat"><span>Total luas (m²)</span><strong id="statLuas">0</strong></div>
   <div class="stat"><span>Belum Punya Koordinat</span><strong id="statTitik">0</strong></div>
   <div class="stat"><span>Batas Belum Ditemukan</span><strong id="statPolygon">0</strong></div>
+</div>
+
+<div class="stats-secondary">
+  <div class="stat-sub" style="border-left-color:#4C8C3F;"><span>Dalam Penitipan</span><strong id="statDalamPenitipan">0</strong></div>
+  <div class="stat-sub" style="border-left-color:#94A3B8;"><span>↳ Belum Dimanfaatkan</span><strong id="statBelumDimanfaatkan">0</strong></div>
+  <div class="stat-sub" style="border-left-color:#1F78B4;"><span>↳ Pemanfaatan</span><strong id="statPemanfaatan">0</strong></div>
+  <div class="stat-sub" style="border-left-color:#B23A3A;"><span>↳ Bermasalah Hukum</span><strong id="statBermasalah">0</strong></div>
+  <div class="stat-sub" style="border-left-color:#B8790F;"><span>Penitipan Berakhir</span><strong id="statBerakhir">0</strong></div>
 </div>
 
 <div class="main">
@@ -67,7 +75,7 @@
     <h3 style="margin:0;">Daftar aset</h3>
     <button id="btnAddPoint" class="primary">+ Tambah aset</button>
   </div>
-  <p class="small-note" style="margin-top:-4px;">Belum ada GeoJSON? Tambah aset sebagai titik dulu, isi koordinatnya manual, lalu tempel GeoJSON poligon belakangan lewat panel edit begitu hasil trace-nya siap.</p>
+  <p class="small-note" id="hintTambahAset" style="margin-top:-4px;">Belum ada GeoJSON? Tambah aset sebagai titik dulu, isi koordinatnya manual, lalu tempel GeoJSON poligon belakangan lewat panel edit begitu hasil trace-nya siap.</p>
   <table>
     <thead>
       <tr>
@@ -85,6 +93,11 @@
 </div>
 
 
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <span id="loadingText">Menyimpan...</span>
+</div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>

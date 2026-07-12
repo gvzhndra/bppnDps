@@ -3,20 +3,25 @@
  * ---------------------------------------------------
  * SETUP SPREADSHEET (3 tab/sheet dibutuhkan):
  *
- * 1) Tab "Aset" (data aset, sama seperti sebelumnya)
+ * 1) Tab "Aset" (data aset)
  *    Header baris pertama, urutan bebas asal nama sama:
- *      id | kode_aset | lokasi | status | luas | no_dokumen | jenis_dokumen | catatan | geom_type | geometry_json
+ *      id | kode_aset | lokasi | status | kategori_penitipan | jenis_pemanfaatan | alasan_selesai_penitipan | luas | no_dokumen | jenis_dokumen | catatan | link_folder | geom_type | geometry_json
  *    Kolom "id", "geom_type", "geometry_json" WAJIB ada (dipakai sistem).
  *    Kolom lain boleh kamu tambah/hapus/ubah nama bebas -- otomatis muncul di dashboard.
+ *    - status              : cuma 2 nilai valid -- "Dalam Penitipan" atau "Penitipan Berakhir"
+ *    - kategori_penitipan  : cuma relevan kalau status = Dalam Penitipan -- kosong / "Pemanfaatan" / "Bermasalah Hukum"
+ *    - jenis_pemanfaatan   : teks bebas, cuma relevan kalau kategori_penitipan = Pemanfaatan
+ *    - alasan_selesai_penitipan : teks bebas, cuma relevan kalau status = Penitipan Berakhir
+ *    - link_folder         : satu link folder Drive per aset (bukan per riwayat dokumen)
  *
- * 2) Tab "Riwayat" (BARU - riwayat dokumen per aset)
+ * 2) Tab "Riwayat" (riwayat dokumen per aset)
  *    Header baris pertama, PERSIS:
  *      id | asset_id | no_dokumen | jenis_dokumen | tanggal | catatan
  *    - id           : diisi otomatis oleh sistem saat entri baru ditambah
  *    - asset_id     : harus cocok dengan kolom "id" di tab Aset
  *    - tanggal      : isi format tanggal (boleh ketik manual "2024-03-15" atau pilih dari date picker di dashboard)
  *
- * 3) Tab "Users" (BARU - untuk login & role)
+ * 3) Tab "Users" (untuk login & role)
  *    Header baris pertama, PERSIS:
  *      username | password | role | nama | aktif
  *    - password : boleh diisi lewat menu "Aset eks BPPN" > "Generate Password
@@ -29,24 +34,36 @@
  *    - aktif    : isi TRUE atau FALSE. Set FALSE untuk menonaktifkan user tanpa
  *                 menghapus barisnya (jejak tetap ada).
  *
+ * 4) Tab "LogEkspor" -- TIDAK PERLU DIBUAT MANUAL. Otomatis dibuat sistem
+ *    (header + baris log) begitu ada admin yang pertama kali pakai fitur
+ *    "Ekspor ke Google Sheets" di dashboard.
+ *
  * DEPLOY:
  * Deploy > New deployment > Web app
  *   - Execute as: Me
  *   - Who has access: Anyone (atau "Anyone within [organisasi]" untuk domain kantor)
  * Salin URL Web App ke API_URL di config.js dashboard.
  *
+ * IZIN TAMBAHAN UNTUK FITUR EKSPOR:
+ * exportData_() memakai DriveApp untuk bikin Spreadsheet baru & atur sharing-nya.
+ * Pertama kali fitur "Ekspor ke Google Sheets" dipakai, Google mungkin minta
+ * otorisasi ulang (izin akses Drive) -- klik "Continue"/"Allow" seperti biasa.
+ *
  * CATATAN KEAMANAN:
  * Ini pakai Google Sheets sebagai "database", jadi bukan sistem auth kelas
  * enterprise. Password disimpan sebagai hash SHA-256 (bukan plain text), dan
- * setiap aksi tulis (create/update/delete/riwayat) divalidasi ulang di server
- * ini berdasarkan role, bukan cuma disembunyikan di tampilan. Untuk penggunaan
- * internal tim kecil ini cukup aman; kalau datanya makin sensitif, pertimbangkan
- * migrasi ke backend yang lebih matang.
+ * setiap aksi tulis (create/update/delete/riwayat/ekspor) divalidasi ulang di
+ * server ini berdasarkan role, bukan cuma disembunyikan di tampilan. Spreadsheet
+ * hasil ekspor dibagikan sebagai "siapa saja yang punya link bisa lihat" --
+ * jadi perlakukan link hasil ekspor itu seperti dokumen resmi, jangan disebar
+ * sembarangan. Untuk penggunaan internal tim kecil ini cukup aman; kalau
+ * datanya makin sensitif, pertimbangkan migrasi ke backend yang lebih matang.
  */
 
 const SHEET_ASET = "Aset";
 const SHEET_RIWAYAT = "Riwayat";
 const SHEET_USERS = "Users";
+const SHEET_LOG = "LogEkspor"; // dibuat otomatis kalau belum ada, saat ekspor pertama kali dipakai
 const RESERVED_COLUMNS = ["id", "geom_type", "geometry_json"];
 const SESSION_TTL_SECONDS = 21600; // 6 jam - batas maksimum CacheService
 
@@ -290,6 +307,11 @@ function doPost(e) {
       return jsonResponse_(deleteHistoryEntry_(body.id));
     }
 
+    if (action === 'exportData') {
+      const session = requireAdmin_(body.token);
+      return jsonResponse_(exportData_(session.username));
+    }
+
     return jsonResponse_({ ok: false, error: 'Aksi tidak dikenali: ' + action });
   } catch (err) {
     return jsonResponse_({ ok: false, error: String(err.message || err) });
@@ -376,4 +398,53 @@ function deleteHistoryEntry_(id) {
 function generatePasswordHash() {
   const PLAIN_PASSWORD = 'GANTI_INI'; // <-- ganti dengan password asli sebelum Run
   Logger.log(hashPassword_(PLAIN_PASSWORD));
+}
+
+// ================= EKSPOR: salinan data Aset & Riwayat ke Spreadsheet baru =================
+// Cuma bisa dipanggil admin (dicek lewat requireAdmin_ di doPost). Membuat
+// Google Sheet baru berisi snapshot data saat ini, lalu dicatat di tab
+// "LogEkspor" (dibuat otomatis kalau belum ada) untuk jejak audit.
+function exportData_(username) {
+  const asetSheet = getSheet_(SHEET_ASET);
+  const riwayatSheet = getSheet_(SHEET_RIWAYAT);
+  if (!asetSheet) return { ok: false, error: "Sheet '" + SHEET_ASET + "' tidak ditemukan" };
+
+  const asetData = asetSheet.getDataRange().getValues();
+  const riwayatData = riwayatSheet ? riwayatSheet.getDataRange().getValues() : [['id', 'asset_id', 'no_dokumen', 'jenis_dokumen', 'tanggal', 'catatan']];
+
+  const timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm');
+  const newSs = SpreadsheetApp.create('Ekspor Aset eks BPPN - ' + timestamp);
+
+  const asetSheetNew = newSs.getSheets()[0];
+  asetSheetNew.setName('Aset');
+  if (asetData.length) asetSheetNew.getRange(1, 1, asetData.length, asetData[0].length).setValues(asetData);
+
+  const riwayatSheetNew = newSs.insertSheet('Riwayat');
+  if (riwayatData.length) riwayatSheetNew.getRange(1, 1, riwayatData.length, riwayatData[0].length).setValues(riwayatData);
+
+  // Supaya admin (siapa pun dia, bukan cuma akun "Me" yang deploy script ini)
+  // bisa langsung buka hasil ekspornya lewat link.
+  try {
+    DriveApp.getFileById(newSs.getId()).setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+  } catch (shareErr) {
+    // Kalau gagal set sharing (misal belum authorize Drive scope), tetap lanjut --
+    // filenya tetap ada, admin cuma perlu buka lewat akun Google yang sama dengan
+    // yang deploy Apps Script ini.
+  }
+
+  const jumlahAset = Math.max(0, asetData.length - 1);
+  const jumlahRiwayat = Math.max(0, riwayatData.length - 1);
+  logExport_(username, newSs.getUrl(), jumlahAset, jumlahRiwayat);
+
+  return { ok: true, url: newSs.getUrl(), jumlahAset: jumlahAset, jumlahRiwayat: jumlahRiwayat };
+}
+
+function logExport_(username, url, jumlahAset, jumlahRiwayat) {
+  let sheet = getSheet_(SHEET_LOG);
+  if (!sheet) {
+    sheet = SpreadsheetApp.getActiveSpreadsheet().insertSheet(SHEET_LOG);
+    sheet.appendRow(['timestamp', 'username', 'link_hasil_ekspor', 'jumlah_aset', 'jumlah_riwayat']);
+  }
+  const timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH:mm:ss');
+  sheet.appendRow([timestamp, username, url, jumlahAset, jumlahRiwayat]);
 }

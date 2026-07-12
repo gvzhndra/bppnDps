@@ -22,6 +22,61 @@ function internalToGeometry(a){
   return { type:"Polygon", coordinates:[a.coords.map(c => [c[1], c[0]])] };
 }
 
+// Hitung titik tengah (centroid) poligon dari daftar [lat,lng].
+// Dihitung ulang setiap ditampilkan (bukan disimpan) supaya selalu akurat
+// walau bentuk poligonnya diubah, dan tidak perlu kolom tambahan di Sheets.
+function computeCentroid(coordsLatLng){
+  if(!coordsLatLng || coordsLatLng.length < 3){
+    return coordsLatLng && coordsLatLng[0] ? coordsLatLng[0] : [0, 0];
+  }
+  const pts = coordsLatLng.map(c => [c[1], c[0]]); // ke [lng, lat] biar x=lng, y=lat
+  let area = 0, cx = 0, cy = 0;
+  const n = pts.length;
+  for(let i = 0; i < n; i++){
+    const [x0, y0] = pts[i];
+    const [x1, y1] = pts[(i + 1) % n];
+    const cross = x0 * y1 - x1 * y0;
+    area += cross;
+    cx += (x0 + x1) * cross;
+    cy += (y0 + y1) * cross;
+  }
+  area = area / 2;
+  if(Math.abs(area) < 1e-12){
+    const avgLat = coordsLatLng.reduce((s, c) => s + c[0], 0) / coordsLatLng.length;
+    const avgLng = coordsLatLng.reduce((s, c) => s + c[1], 0) / coordsLatLng.length;
+    return [avgLat, avgLng];
+  }
+  cx = cx / (6 * area);
+  cy = cy / (6 * area);
+  return [cy, cx]; // balik ke [lat, lng]
+}
+
+function defaultAssetProps(overrides){
+  return Object.assign({
+    kode_aset: "",
+    lokasi: "",
+    status: "Dalam Penitipan",
+    kategori_penitipan: "Belum Dimanfaatkan",
+    jenis_pemanfaatan: "",
+    alasan_selesai_penitipan: "",
+    luas: 0,
+    no_dokumen: "",
+    jenis_dokumen: "",
+    catatan: "",
+    link_folder: ""
+  }, overrides || {});
+}
+
+// Badge status + kategori (dipakai di tabel & panel detail)
+function statusBadgesHtml(props){
+  let html = `<span class="badge" style="background:${statusColor[props.status]||'#6B7280'}">${escapeHtml(props.status || "-")}</span>`;
+  if(props.status === "Dalam Penitipan" && props.kategori_penitipan){
+    const kColor = kategoriColor[props.kategori_penitipan] || '#6B7280';
+    html += ` <span class="badge" style="background:${kColor}">${escapeHtml(props.kategori_penitipan)}</span>`;
+  }
+  return html;
+}
+
 const map = L.map('map', {scrollWheelZoom:true}).setView([-8.65, 115.22], 11);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:18}).addTo(map);
 
@@ -40,7 +95,7 @@ map.on(L.Draw.Event.CREATED, function(e){
     id: newId(),
     geomType: "polygon",
     coords: latlngs,
-    props: { kode_aset:"Kode aset", lokasi:"", status:"Dalam Penitipan", luas:0, no_dokumen:0, jenis_dokumen:"", catatan:"" }
+    props: defaultAssetProps({ kode_aset:"Kode aset" })
   };
   features.push(newAsset);
   renderAll();
@@ -80,7 +135,7 @@ document.getElementById('btnAddPoint').addEventListener('click', () => {
     id: newId(),
     geomType: "point",
     point: [center.lat, center.lng],
-    props: { kode_aset:"Aset baru (titik)", lokasi:"", status:"Dalam Penitipan", luas:0, no_dokumen:0, jenis_dokumen:"", catatan:"Geometri masih titik perkiraan, belum ada hasil trace." }
+    props: defaultAssetProps({ kode_aset:"Aset baru (titik)", catatan:"Geometri masih titik perkiraan, belum ada hasil trace." })
   };
   features.push(newAsset);
   renderAll();
@@ -118,6 +173,8 @@ function matchesSearch(a, s){
   return (a.props.kode_aset||"").toLowerCase().includes(s)
     || (a.props.lokasi||"").toLowerCase().includes(s)
     || (a.props.status||"").toLowerCase().includes(s)
+    || (a.props.kategori_penitipan||"").toLowerCase().includes(s)
+    || (a.props.jenis_pemanfaatan||"").toLowerCase().includes(s)
     || (a.props.jenis_dokumen||"").toLowerCase().includes(s);
 }
 
@@ -134,12 +191,19 @@ function visibleFeatures(){
   });
 }
 
+function getPrimaryColor(props){
+  if(props.status === "Dalam Penitipan" && props.kategori_penitipan && kategoriColor[props.kategori_penitipan]){
+    return kategoriColor[props.kategori_penitipan];
+  }
+  return statusColor[props.status] || "#6B7280";
+}
+
 function renderAll(){
   Object.values(leafletLayers).forEach(l => map.removeLayer(l));
   leafletLayers = {};
   const vis = visibleFeatures();
   vis.forEach(a => {
-    const color = statusColor[a.props.status] || "#6B7280";
+    const color = getPrimaryColor(a.props);
     let layer;
     if(a.geomType === "point"){
       layer = L.circleMarker(a.point, {radius:9, color:color, weight:2, fillColor:color, fillOpacity:0.7}).addTo(map);
@@ -158,7 +222,7 @@ function renderAll(){
     tr.innerHTML = `<td>${escapeHtml(a.props.kode_aset)}</td><td>${escapeHtml(a.props.lokasi)}</td>
       <td>${geomLabel}</td>
       <td>${(a.props.luas).toLocaleString('id-ID')}</td>
-      <td><span class="badge" style="background:${statusColor[a.props.status]||'#6B7280'}">${escapeHtml(a.props.status)}</span></td>
+      <td><div class="badge-group">${statusBadgesHtml(a.props)}</div></td>
       <td>${escapeHtml(a.props.no_dokumen || "")}</td>
       <td>${escapeHtml(a.props.jenis_dokumen)}</td>
       <td style="white-space:nowrap;">
@@ -172,13 +236,22 @@ function renderAll(){
   });
 
   const belumPunyaKoordinat = vis.filter(a => !a.point && !a.coords).length;
-
   const batasBelumDitemukan = vis.filter(a => a.geomType !== "polygon").length;
+  const dalamPenitipan = vis.filter(a => a.props.status === "Dalam Penitipan");
+  const belumDimanfaatkanCount = dalamPenitipan.filter(a => !a.props.kategori_penitipan || a.props.kategori_penitipan === "Belum Dimanfaatkan").length;
+  const pemanfaatanCount = dalamPenitipan.filter(a => a.props.kategori_penitipan === "Pemanfaatan").length;
+  const bermasalahCount = dalamPenitipan.filter(a => a.props.kategori_penitipan === "Bermasalah Hukum").length;
+  const berakhirCount = vis.filter(a => a.props.status === "Penitipan Berakhir").length;
 
   document.getElementById('statTotal').textContent = vis.length;
   document.getElementById('statLuas').textContent = vis.reduce((s,a)=>s+Number(a.props.luas),0).toLocaleString('id-ID');
   document.getElementById('statTitik').textContent = belumPunyaKoordinat;
   document.getElementById('statPolygon').textContent = batasBelumDitemukan;
+  document.getElementById('statDalamPenitipan').textContent = dalamPenitipan.length;
+  document.getElementById('statBelumDimanfaatkan').textContent = belumDimanfaatkanCount;
+  document.getElementById('statPemanfaatan').textContent = pemanfaatanCount;
+  document.getElementById('statBermasalah').textContent = bermasalahCount;
+  document.getElementById('statBerakhir').textContent = berakhirCount;
 }
 
 function escapeHtml(str){
@@ -214,7 +287,23 @@ function renderViewPanel(a){
 
   const geomInfo = a.geomType === "point"
     ? `Titik (${a.point[0].toFixed(6)}, ${a.point[1].toFixed(6)})`
-    : `Poligon (${a.coords.length} titik)`;
+    : (() => {
+        const c = computeCentroid(a.coords);
+        return `Poligon (${a.coords.length} titik) — titik tengah: ${c[0].toFixed(6)}, ${c[1].toFixed(6)}`;
+      })();
+
+  const kategoriRow = (a.props.status === "Dalam Penitipan" && a.props.kategori_penitipan)
+    ? `<div class="view-row"><span class="view-label">Kategori</span><span class="view-value">${escapeHtml(a.props.kategori_penitipan)}</span></div>`
+    : '';
+  const jenisPemanfaatanRow = (a.props.status === "Dalam Penitipan" && a.props.kategori_penitipan === "Pemanfaatan" && a.props.jenis_pemanfaatan)
+    ? `<div class="view-row"><span class="view-label">Jenis pemanfaatan</span><span class="view-value">${escapeHtml(a.props.jenis_pemanfaatan)}</span></div>`
+    : '';
+  const alasanRow = (a.props.status === "Penitipan Berakhir" && a.props.alasan_selesai_penitipan)
+    ? `<div class="view-row"><span class="view-label">Alasan selesai</span><span class="view-value">${escapeHtml(a.props.alasan_selesai_penitipan)}</span></div>`
+    : '';
+  const linkFolderRow = a.props.link_folder
+    ? `<div class="view-row"><span class="view-label">Folder berkas</span><span class="view-value"><a href="${escapeHtml(a.props.link_folder)}" target="_blank" rel="noopener">Buka folder ↗</a></span></div>`
+    : '';
 
   const actionButtons = isAdmin() ? `
     <div class="actions-row">
@@ -238,10 +327,14 @@ function renderViewPanel(a){
     <div class="view-row"><span class="view-label">Kode aset</span><span class="view-value">${escapeHtml(a.props.kode_aset || "-")}</span></div>
     <div class="view-row"><span class="view-label">Lokasi</span><span class="view-value">${escapeHtml(a.props.lokasi || "-")}</span></div>
     <div class="view-row"><span class="view-label">Luas (m²)</span><span class="view-value">${Number(a.props.luas||0).toLocaleString('id-ID')}</span></div>
-    <div class="view-row"><span class="view-label">Status</span><span class="badge" style="background:${statusColor[a.props.status]||'#6B7280'}">${escapeHtml(a.props.status || "-")}</span></div>
+    <div class="view-row"><span class="view-label">Status</span><div class="badge-group">${statusBadgesHtml(a.props)}</div></div>
+    ${kategoriRow}
+    ${jenisPemanfaatanRow}
+    ${alasanRow}
     <div class="view-row"><span class="view-label">No. Dokumen</span><span class="view-value">${escapeHtml(a.props.no_dokumen || "-")}</span></div>
     <div class="view-row"><span class="view-label">Jenis dokumen</span><span class="view-value">${escapeHtml(a.props.jenis_dokumen || "-")}</span></div>
     <div class="view-row"><span class="view-label">Catatan</span><span class="view-value">${escapeHtml(a.props.catatan || "-")}</span></div>
+    ${linkFolderRow}
     <div class="view-row"><span class="view-label">Geometri</span><span class="view-value">${geomInfo}</span></div>
     ${extraSection}
     <div class="field" style="border-top:1px dashed var(--border);padding-top:10px;margin-top:10px;">
@@ -270,7 +363,12 @@ function renderViewPanel(a){
         return;
       }
       const res = await addHistoryEntry({ asset_id: a.id, no_dokumen, tanggal, jenis_dokumen });
-      if(res) loadAndRenderHistory(a.id);
+      if(res){
+        document.getElementById('hist-no_dokumen').value = '';
+        document.getElementById('hist-tanggal').value = '';
+        document.getElementById('hist-jenis').value = '';
+        loadAndRenderHistory(a.id);
+      }
     });
   }
   loadAndRenderHistory(a.id);
@@ -323,9 +421,10 @@ function renderEditPanel(a){
         <button id="btnApplyGeojson" class="primary" style="font-size:12px;">Terapkan sebagai poligon</button>
       </div>
     </div>
-  ` : `
-    <div class="field"><p class="small-note">Geometri: poligon (${a.coords.length} titik). Untuk mengganti bentuk, hapus aset ini dan tambahkan ulang, atau gambar ulang lewat "Gambar poligon baru".</p></div>
-  `;
+  ` : (() => {
+      const c = computeCentroid(a.coords);
+      return `<div class="field"><p class="small-note">Geometri: poligon (${a.coords.length} titik), titik tengah (centroid) otomatis: <strong>${c[0].toFixed(6)}, ${c[1].toFixed(6)}</strong>. Untuk mengganti bentuk, hapus aset ini dan tambahkan ulang, atau gambar ulang lewat "Gambar poligon baru".</p></div>`;
+    })();
 
   const extraKeys = sheetHeaders.filter(h => RESERVED_COLUMNS.indexOf(h) === -1 && CORE_PROPS.indexOf(h) === -1);
   const extraSection = extraKeys.length ? `
@@ -349,15 +448,30 @@ function renderEditPanel(a){
       <div class="field"><label>Luas (m²)</label><input type="number" id="f-luas" value="${a.props.luas}"></div>
       <div class="field"><label>Status</label>
         <select id="f-status">
-          ${Object.keys(statusColor).map(s => `<option value="${s}" ${s===a.props.status?'selected':''}>${s}</option>`).join('')}
+          ${STATUS_OPTIONS.map(s => `<option value="${s}" ${s===a.props.status?'selected':''}>${s}</option>`).join('')}
         </select>
       </div>
+    </div>
+    <div class="field" id="wrap-kategori" style="display:none;">
+      <label>Kategori</label>
+      <select id="f-kategori_penitipan">
+        ${KATEGORI_OPTIONS.map(k => `<option value="${k}" ${k===a.props.kategori_penitipan?'selected':''}>${k}</option>`).join('')}
+      </select>
+    </div>
+    <div class="field" id="wrap-jenis_pemanfaatan" style="display:none;">
+      <label>Jenis pemanfaatan (ketik manual)</label>
+      <input type="text" id="f-jenis_pemanfaatan" value="${escapeHtml(a.props.jenis_pemanfaatan || "")}" placeholder="mis. disewakan ke Dinas X, dipakai gudang, dll.">
+    </div>
+    <div class="field" id="wrap-alasan" style="display:none;">
+      <label>Alasan selesai penitipan (ketik manual)</label>
+      <input type="text" id="f-alasan_selesai_penitipan" value="${escapeHtml(a.props.alasan_selesai_penitipan || "")}" placeholder="mis. dikembalikan ke pemilik, dilelang, dll.">
     </div>
     <div class="row2">
       <div class="field"><label>No. Dokumen </label><input type="text" id="f-no_dokumen" value="${a.props.no_dokumen || ""}"></div>
       <div class="field"><label>Jenis dokumen</label><input type="text" id="f-jenis_dokumen" value="${escapeHtml(a.props.jenis_dokumen || "")}"></div>
     </div>
     <div class="field"><label>Catatan</label><textarea id="f-catatan" rows="3">${escapeHtml(a.props.catatan)}</textarea></div>
+    <div class="field"><label>Link folder berkas (Google Drive, satu per aset)</label><input type="text" id="f-link_folder" value="${escapeHtml(a.props.link_folder || "")}" placeholder="https://drive.google.com/drive/folders/..."></div>
     ${geomSection}
     ${extraSection}
     <div class="actions-row">
@@ -365,14 +479,33 @@ function renderEditPanel(a){
       <button id="btnCancelEdit">Batal</button>
     </div>
   `;
+
+  function updateConditionalFields(){
+    const status = document.getElementById('f-status').value;
+    const wrapKategori = document.getElementById('wrap-kategori');
+    const wrapJenis = document.getElementById('wrap-jenis_pemanfaatan');
+    const wrapAlasan = document.getElementById('wrap-alasan');
+    wrapKategori.style.display = status === "Dalam Penitipan" ? '' : 'none';
+    wrapAlasan.style.display = status === "Penitipan Berakhir" ? '' : 'none';
+    const kategori = document.getElementById('f-kategori_penitipan').value;
+    wrapJenis.style.display = (status === "Dalam Penitipan" && kategori === "Pemanfaatan") ? '' : 'none';
+  }
+  updateConditionalFields();
+  document.getElementById('f-status').addEventListener('change', updateConditionalFields);
+  document.getElementById('f-kategori_penitipan').addEventListener('change', updateConditionalFields);
+
   document.getElementById('btnSave').addEventListener('click', () => {
     a.props.kode_aset = document.getElementById('f-kode_aset').value;
     a.props.lokasi = document.getElementById('f-lokasi').value;
     a.props.luas = Number(document.getElementById('f-luas').value) || 0;
     a.props.status = document.getElementById('f-status').value;
+    a.props.kategori_penitipan = a.props.status === "Dalam Penitipan" ? document.getElementById('f-kategori_penitipan').value : "";
+    a.props.jenis_pemanfaatan = (a.props.status === "Dalam Penitipan" && a.props.kategori_penitipan === "Pemanfaatan") ? document.getElementById('f-jenis_pemanfaatan').value : "";
+    a.props.alasan_selesai_penitipan = a.props.status === "Penitipan Berakhir" ? document.getElementById('f-alasan_selesai_penitipan').value : "";
     a.props.no_dokumen = document.getElementById('f-no_dokumen').value;
     a.props.jenis_dokumen = document.getElementById('f-jenis_dokumen').value;
     a.props.catatan = document.getElementById('f-catatan').value;
+    a.props.link_folder = document.getElementById('f-link_folder').value;
     document.querySelectorAll('.f-extra').forEach(inp => { a.props[inp.dataset.key] = inp.value; });
     if(a.geomType === "point"){
       const lat = Number(document.getElementById('f-lat').value);
@@ -460,7 +593,22 @@ function applyRoleUI(){
   const addBtn = document.getElementById('btnAddPoint');
   if(addBtn) addBtn.style.display = admin ? '' : 'none';
   if(btnDraw) btnDraw.style.display = admin ? '' : 'none';
+  const hint = document.getElementById('hintTambahAset');
+  if(hint) hint.style.display = admin ? '' : 'none';
+  const exportBtn = document.getElementById('btnExportSheets');
+  if(exportBtn) exportBtn.style.display = admin ? '' : 'none';
 }
+
+document.getElementById('btnExportSheets').addEventListener('click', async () => {
+  if(!isAdmin()) return;
+  if(!confirm('Buat salinan data (Aset & Riwayat) ke Google Sheet baru?')) return;
+  const res = await exportToSheets();
+  if(res && res.url){
+    if(confirm('Ekspor berhasil. Buka Sheet hasil ekspor di tab baru sekarang?')){
+      window.open(res.url, '_blank');
+    }
+  }
+});
 
 document.getElementById('btnLogout').addEventListener('click', () => {
   clearSession();
