@@ -34,6 +34,15 @@ async function doLogin(){
   window.location.href = 'index.html';
 }
 
+document.getElementById('togglePassword').addEventListener('click', () => {
+  const pwInput = document.getElementById('loginPassword');
+  const btn = document.getElementById('togglePassword');
+  const isHidden = pwInput.type === 'password';
+  pwInput.type = isHidden ? 'text' : 'password';
+  btn.textContent = isHidden ? '🙈' : '👁';
+  btn.setAttribute('aria-label', isHidden ? 'Sembunyikan password' : 'Tampilkan password');
+});
+
 document.getElementById('btnLogin').addEventListener('click', doLogin);
 document.getElementById('loginPassword').addEventListener('keydown', (e) => { if(e.key === 'Enter') doLogin(); });
 document.getElementById('loginUsername').addEventListener('keydown', (e) => { if(e.key === 'Enter') doLogin(); });

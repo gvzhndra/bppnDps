@@ -15,7 +15,13 @@
     <h3 style="margin-bottom:2px;">Masuk ke Dashboard</h3>
     <p class="small-note" style="margin-top:0;margin-bottom:16px;">Dashboard Aset eks BPPN — KPKNL Denpasar</p>
     <div class="field"><label>Username</label><input type="text" id="loginUsername" autocomplete="username"></div>
-    <div class="field"><label>Password</label><input type="password" id="loginPassword" autocomplete="current-password"></div>
+    <div class="field">
+      <label>Password</label>
+      <div class="password-wrap">
+        <input type="password" id="loginPassword" autocomplete="current-password">
+        <button type="button" id="togglePassword" class="toggle-password-btn" aria-label="Tampilkan password">👁</button>
+      </div>
+    </div>
     <div id="loginError" style="color:var(--masalah);font-size:12px;margin-bottom:6px;display:none;"></div>
     <div class="modal-actions">
       <button class="primary" id="btnLogin" style="width:100%;">Masuk</button>

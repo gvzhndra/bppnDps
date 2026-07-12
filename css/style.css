@@ -1,4 +1,4 @@
-:root{
+  :root{
     --navy:#1B3A5C; --navy-dark:#122A44; --teal:#1D9E75;
     --bg:#F4F6F8; --card:#FFFFFF; --border:#DCE1E6;
     --text:#1F2937; --text-mut:#6B7280;
@@ -60,3 +60,8 @@
      tidak ditampilkan ke pengguna. Hapus/comment blok ini kalau mau
      memunculkannya lagi. */
   #btnExport{display:none;}
+
+  .password-wrap{position:relative;}
+  .password-wrap input{padding-right:36px;width:100%;}
+  .toggle-password-btn{position:absolute;right:2px;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:15px;padding:6px 8px;color:var(--text-mut);line-height:1;}
+  .toggle-password-btn:hover{background:none;color:var(--text);}
