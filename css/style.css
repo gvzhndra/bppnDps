@@ -15,7 +15,7 @@
   button.primary{background:var(--navy);color:#fff;border-color:var(--navy);}
   button.primary:hover{background:var(--navy-dark);}
   button.danger{color:var(--masalah);border-color:var(--masalah);}
-  select,input[type=text],input[type=password],input[type=number],input[type=date],textarea{font-size:13px;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-family:inherit;}
+  select,input[type=text],input[type=password],input[type=number],input[type=date],textarea{font-size:13px;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-family:inherit;-webkit-appearance:none;appearance:none;background:#fff;color:var(--text);}
   .stats{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;padding:14px 24px;}
   .stat{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px 16px;}
   .stat span{display:block;font-size:12px;color:var(--text-mut);}
