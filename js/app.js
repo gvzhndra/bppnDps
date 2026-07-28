@@ -594,6 +594,19 @@ function renderViewPanel(a){
         deleteAssetOnServer(a.id);
       }
     });
+    const btnAddHist = document.getElementById('btnAddHistory');
+    const inputNoDok = document.getElementById('hist-no_dokumen');
+    const inputTgl = document.getElementById('hist-tanggal');
+    if (btnAddHist && inputNoDok && inputTgl) {
+      const updateHistBtnState = () => {
+        btnAddHist.disabled = !inputNoDok.value.trim() || !inputTgl.value;
+      };
+      updateHistBtnState();
+      inputNoDok.addEventListener('input', updateHistBtnState);
+      inputTgl.addEventListener('change', updateHistBtnState);
+      inputTgl.addEventListener('input', updateHistBtnState);
+    }
+
     document.getElementById('btnAddHistory').addEventListener('click', async () => {
       const no_dokumen = document.getElementById('hist-no_dokumen').value.trim();
       const tanggal = document.getElementById('hist-tanggal').value;
@@ -608,6 +621,7 @@ function renderViewPanel(a){
         document.getElementById('hist-tanggal').value = '';
         document.getElementById('hist-jenis').value = '';
         loadAndRenderHistory(a.id);
+        if (btnAddHist) btnAddHist.disabled = true;
       }
     });
   }
@@ -942,10 +956,7 @@ function renderEditPanel(a){
   const geojsonInput = document.getElementById('f-geojson');
   if (btnApply && geojsonInput) {
     const updateBtnState = () => {
-      const hasText = !!geojsonInput.value.trim();
-      btnApply.disabled = !hasText;
-      btnApply.style.opacity = hasText ? '1' : '0.5';
-      btnApply.style.cursor = hasText ? 'pointer' : 'not-allowed';
+      btnApply.disabled = !geojsonInput.value.trim();
     };
     updateBtnState();
     geojsonInput.addEventListener('input', updateBtnState);
