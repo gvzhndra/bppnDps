@@ -80,7 +80,7 @@ function parseCoordsFromString(val){
 }
 
 function googleEarthUrl(lat, lng){
-  return `https://earth.google.com/web/search/${lat},+${lng}`;
+  return `https://earth.google.com/web/@${lat},${lng},500a,35y,0h,0t,0r`;
 }
 
 function googleMapsUrl(lat, lng){
@@ -476,8 +476,8 @@ function renderViewPanel(a){
       <div class="view-row">
         <span class="view-label">Buka di Peta</span>
         <span class="view-value" style="display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;">
-          <a href="${earthUrl}" target="_blank" rel="noopener" style="color:#1F78B4;font-weight:600;text-decoration:none;background:#F0F4F8;padding:4px 8px;border-radius:4px;font-size:12px;">🌍 Google Earth (Pin)</a>
-          <a href="${mapsUrl}" target="_blank" rel="noopener" style="color:#EA4335;font-weight:600;text-decoration:none;background:#FDF2F2;padding:4px 8px;border-radius:4px;font-size:12px;">📍 Google Maps (Pin)</a>
+          <a href="${mapsUrl}" target="_blank" rel="noopener" style="color:#EA4335;font-weight:600;text-decoration:none;background:#FDF2F2;padding:5px 9px;border-radius:4px;font-size:12px;border:1px solid #FCA5A5;">📍 Google Maps (Pin Merah)</a>
+          <a href="${earthUrl}" target="_blank" rel="noopener" style="color:#1F78B4;font-weight:600;text-decoration:none;background:#F0F4F8;padding:5px 9px;border-radius:4px;font-size:12px;border:1px solid #BAE6FD;">🌍 Google Earth 3D</a>
         </span>
       </div>
     ` : '<div class="view-row"><span class="view-label">Buka di Peta</span><span class="view-value" style="color:var(--text-mut);">Belum ada koordinat</span></div>'}
@@ -701,7 +701,7 @@ async function loadAndRenderPhotos(assetId){
       <div class="foto-meta">
         <span>${escapeHtml(p.tanggal)}</span>
         <span class="small-note" style="margin:0;">${escapeHtml(sumberLabel[p.sumber_tag] || p.sumber_tag || '-')}</span>
-        ${(p.lat && p.lng) ? `<a href="${googleEarthUrl(p.lat, p.lng)}" target="_blank" rel="noopener" style="font-size:10px;color:#1F78B4;">Earth (${Number(p.lat).toFixed(4)}, ${Number(p.lng).toFixed(4)})</a>` : ''}
+        ${(p.lat && p.lng) ? `<a href="${googleMapsUrl(p.lat, p.lng)}" target="_blank" rel="noopener" style="font-size:10px;color:#EA4335;font-weight:500;">📍 Maps (${Number(p.lat).toFixed(4)}, ${Number(p.lng).toFixed(4)})</a>` : ''}
         ${isAdmin() ? `<button class="danger btnDeleteFoto" data-id="${p.id}" style="padding:2px 8px;font-size:11px;">Hapus</button>` : ''}
       </div>
     </div>
