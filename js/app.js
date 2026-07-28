@@ -492,7 +492,7 @@ function renderViewPanel(a){
       <div class="field"><label>Tanggal</label><input type="date" id="hist-tanggal"></div>
     </div>
     <div class="field"><label>Jenis dokumen (opsional)</label><input type="text" id="hist-jenis"></div>
-    <div class="actions-row"><button class="primary" id="btnAddHistory" style="font-size:12px;">+ Tambah riwayat</button></div>
+    <div class="actions-row"><button class="primary" id="btnAddHistory" style="font-size:12px;opacity:0.45;cursor:not-allowed;" disabled>+ Tambah riwayat</button></div>
   ` : '';
 
   const panel = document.getElementById('sidePanel');
@@ -599,7 +599,10 @@ function renderViewPanel(a){
     const inputTgl = document.getElementById('hist-tanggal');
     if (btnAddHist && inputNoDok && inputTgl) {
       const updateHistBtnState = () => {
-        btnAddHist.disabled = !inputNoDok.value.trim() || !inputTgl.value;
+        const isValid = !!inputNoDok.value.trim() && !!inputTgl.value;
+        btnAddHist.disabled = !isValid;
+        btnAddHist.style.opacity = isValid ? '1' : '0.45';
+        btnAddHist.style.cursor = isValid ? 'pointer' : 'not-allowed';
       };
       updateHistBtnState();
       inputNoDok.addEventListener('input', updateHistBtnState);
@@ -825,7 +828,7 @@ function renderEditPanel(a){
       <label style="margin-bottom:6px;">${a.geomType === "point" ? "Sudah ada hasil trace GeoJSON untuk aset ini? Tempel di sini:" : "Mau ganti bentuk poligon? Tempel GeoJSON baru di sini:"}</label>
       <textarea id="f-geojson" rows="4" placeholder='{"type":"Feature","geometry":{"type":"Polygon","coordinates":[...]}}'></textarea>
       <div class="actions-row" style="margin-top:8px;">
-        <button id="btnApplyGeojson" class="primary" style="font-size:12px;">Terapkan sebagai poligon</button>
+        <button id="btnApplyGeojson" class="primary" style="font-size:12px;opacity:0.45;cursor:not-allowed;" disabled>Terapkan sebagai poligon</button>
       </div>
     </div>
   `;
@@ -956,7 +959,10 @@ function renderEditPanel(a){
   const geojsonInput = document.getElementById('f-geojson');
   if (btnApply && geojsonInput) {
     const updateBtnState = () => {
-      btnApply.disabled = !geojsonInput.value.trim();
+      const hasText = !!geojsonInput.value.trim();
+      btnApply.disabled = !hasText;
+      btnApply.style.opacity = hasText ? '1' : '0.45';
+      btnApply.style.cursor = hasText ? 'pointer' : 'not-allowed';
     };
     updateBtnState();
     geojsonInput.addEventListener('input', updateBtnState);
