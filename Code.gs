@@ -1,72 +1,32 @@
 /**
  * BACKEND DASHBOARD ASET EKS BPPN - KPKNL DENPASAR
  * ---------------------------------------------------
- * SETUP SPREADSHEET (3 tab/sheet dibutuhkan):
+ * SETUP SPREADSHEET (4 tab/sheet dibutuhkan):
  *
  * 1) Tab "Aset" (data aset)
  *    Header baris pertama, urutan bebas asal nama sama:
  *      id | kode_aset | lokasi | status | kategori_penitipan | jenis_pemanfaatan | alasan_selesai_penitipan | luas | no_dokumen | jenis_dokumen | catatan | link_folder | geom_type | geometry_json
  *    Kolom "id", "geom_type", "geometry_json" WAJIB ada (dipakai sistem).
- *    Kolom lain boleh kamu tambah/hapus/ubah nama bebas -- otomatis muncul di dashboard.
- *    - status              : cuma 2 nilai valid -- "Dalam Penitipan" atau "Penitipan Berakhir"
- *    - kategori_penitipan  : cuma relevan kalau status = Dalam Penitipan -- kosong / "Pemanfaatan" / "Bermasalah Hukum"
- *    - jenis_pemanfaatan   : teks bebas, cuma relevan kalau kategori_penitipan = Pemanfaatan
- *    - alasan_selesai_penitipan : teks bebas, cuma relevan kalau status = Penitipan Berakhir
- *    - link_folder         : satu link folder Drive per aset (bukan per riwayat dokumen)
  *
  * 2) Tab "Riwayat" (riwayat dokumen per aset)
- *    Header baris pertama, PERSIS:
- *      id | asset_id | no_dokumen | jenis_dokumen | tanggal | catatan
- *    - id           : diisi otomatis oleh sistem saat entri baru ditambah
- *    - asset_id     : harus cocok dengan kolom "id" di tab Aset
- *    - tanggal      : isi format tanggal (boleh ketik manual "2024-03-15" atau pilih dari date picker di dashboard)
+ *    Header baris pertama: id | asset_id | no_dokumen | jenis_dokumen | tanggal | catatan
  *
- * 3) Tab "Users" (untuk login & role)
- *    Header baris pertama, PERSIS:
- *      username | password | role | nama | aktif
- *    - password : boleh diisi lewat menu "Aset eks BPPN" > "Generate Password
- *                 Hash..." (disarankan), ATAU ketik langsung password aslinya
- *                 ke sel -- begitu Enter, sistem OTOMATIS menggantinya dengan
- *                 hash SHA-256 (lihat fungsi onEdit di bawah). Jadi plain text
- *                 tidak akan pernah tersimpan permanen, walau langkah manual
- *                 di menu terlewat.
- *    - role     : isi "admin" (bisa tambah/edit/hapus) atau "viewer" (lihat saja)
- *    - aktif    : isi TRUE atau FALSE. Set FALSE untuk menonaktifkan user tanpa
- *                 menghapus barisnya (jejak tetap ada).
+ * 3) Tab "Foto" (foto & geotagging per aset - dibuat otomatis jika belum ada)
+ *    Header baris pertama: id | asset_id | url_foto | lat | lng | sumber_tag | tanggal
  *
- * 4) Tab "LogEkspor" -- TIDAK PERLU DIBUAT MANUAL. Otomatis dibuat sistem
- *    (header: timestamp | username | nama_file | jumlah_aset | jumlah_riwayat)
- *    begitu ada admin yang pertama kali pakai fitur "Ekspor ke Excel" di dashboard.
+ * 4) Tab "Users" (untuk login & role)
+ *    Header baris pertama: username | password | role | nama | aktif
  *
- * DEPLOY:
- * Deploy > New deployment > Web app
- *   - Execute as: Me
- *   - Who has access: Anyone (atau "Anyone within [organisasi]" untuk domain kantor)
- * Salin URL Web App ke API_URL di config.js dashboard.
- *
- * IZIN TAMBAHAN UNTUK FITUR EKSPOR:
- * exportData_() bikin spreadsheet sementara (buat dikonversi ke .xlsx lewat
- * endpoint export Google Sheets), lalu langsung dihapus lagi -- yang dikirim
- * ke browser cuma bytes file .xlsx-nya (auto-download di sisi client, tidak
- * ada file yang tersisa/dibagikan di Drive). Pertama kali fitur ini dipakai,
- * Google mungkin minta otorisasi ulang (izin akses Drive/Sheets) -- klik
- * "Continue"/"Allow" seperti biasa.
- *
- * CATATAN KEAMANAN:
- * Ini pakai Google Sheets sebagai "database", jadi bukan sistem auth kelas
- * enterprise. Password disimpan sebagai hash SHA-256 (bukan plain text), dan
- * setiap aksi tulis (create/update/delete/riwayat/ekspor) divalidasi ulang di
- * server ini berdasarkan role, bukan cuma disembunyikan di tampilan. Untuk
- * penggunaan internal tim kecil ini cukup aman; kalau datanya makin sensitif,
- * pertimbangkan migrasi ke backend yang lebih matang.
+ * 5) Tab "LogEkspor" -- TIDAK PERLU DIBUAT MANUAL. Otomatis dibuat sistem
  */
 
 const SHEET_ASET = "Aset";
 const SHEET_RIWAYAT = "Riwayat";
+const SHEET_FOTO = "Foto";
 const SHEET_USERS = "Users";
-const SHEET_LOG = "LogEkspor"; // dibuat otomatis kalau belum ada, saat ekspor pertama kali dipakai
+const SHEET_LOG = "LogEkspor";
 const RESERVED_COLUMNS = ["id", "geom_type", "geometry_json"];
-const SESSION_TTL_SECONDS = 21600; // 6 jam - batas maksimum CacheService
+const SESSION_TTL_SECONDS = 21600; // 6 jam
 
 function getSheet_(name) {
   return SpreadsheetApp.getActiveSpreadsheet().getSheetByName(name);
@@ -76,7 +36,7 @@ function jsonResponse_(obj) {
     .setMimeType(ContentService.MimeType.JSON);
 }
 
-// ================= MENU (tampil di Google Sheets) =================
+// ================= MENU =================
 function onOpen() {
   SpreadsheetApp.getUi()
     .createMenu('Aset eks BPPN')
@@ -91,36 +51,26 @@ function promptPasswordHash_() {
     const plain = result.getResponseText();
     if (!plain) { ui.alert('Password tidak boleh kosong.'); return; }
     const hash = hashPassword_(plain);
-    ui.alert('Hash untuk password tersebut:\n\n' + hash + '\n\nSalin nilai ini ke kolom "password" di tab Users (bukan password aslinya).');
+    ui.alert('Hash untuk password tersebut:\n\n' + hash + '\n\nSalin nilai ini ke kolom "password" di tab Users.');
   }
 }
 
-// Jaring pengaman: kalau seseorang mengetik/menempel password APA ADANYA
-// (plain text) langsung ke sel kolom "password" di tab Users -- tanpa lewat
-// menu di atas -- trigger ini otomatis menggantinya dengan hash SHA-256 saat
-// itu juga. Jadi plain text tidak pernah tersimpan permanen di sheet, bahkan
-// kalau langkah manual di atas terlewat.
 function onEdit(e) {
   try {
     const sheet = e.range.getSheet();
     if (sheet.getName() !== SHEET_USERS) return;
-    if (e.range.getRow() === 1) return; // header, abaikan
+    if (e.range.getRow() === 1) return;
 
     const headers = sheet.getRange(1, 1, 1, sheet.getLastColumn()).getValues()[0];
-    const passwordCol = headers.indexOf('password') + 1; // 1-indexed, 0 kalau tidak ketemu
+    const passwordCol = headers.indexOf('password') + 1;
     if (passwordCol === 0 || e.range.getColumn() !== passwordCol) return;
 
     const value = e.range.getValue();
     if (!value) return;
-
-    // Kalau nilainya sudah terlihat seperti hash SHA-256 (64 karakter hex),
-    // anggap sudah di-hash sebelumnya -- jangan di-hash dobel.
     if (/^[a-f0-9]{64}$/i.test(String(value))) return;
 
     e.range.setValue(hashPassword_(String(value)));
-  } catch (err) {
-    // Sengaja tidak dilempar ke atas supaya tidak mengganggu proses edit sheet.
-  }
+  } catch (err) {}
 }
 
 // ================= AUTH HELPERS =================
@@ -162,7 +112,7 @@ function requireAdmin_(token) {
 function login_(username, password) {
   if (!username || !password) throw new Error('Username dan password wajib diisi.');
   const sheet = getSheet_(SHEET_USERS);
-  if (!sheet) throw new Error("Sheet '" + SHEET_USERS + "' tidak ditemukan. Buat dulu sesuai petunjuk di atas kode.");
+  if (!sheet) throw new Error("Sheet '" + SHEET_USERS + "' tidak ditemukan. Buat dulu sesuai petunjuk.");
   const data = sheet.getDataRange().getValues();
   const headers = data[0];
   const idxUser = headers.indexOf('username');
@@ -189,7 +139,7 @@ function login_(username, password) {
   throw new Error('Username atau password salah.');
 }
 
-// ================= GET: baca data =================
+// ================= GET =================
 function doGet(e) {
   try {
     const params = (e && e.parameter) || {};
@@ -204,6 +154,12 @@ function doGet(e) {
       requireSession_(params.token);
       if (!params.asset_id) return jsonResponse_({ ok: false, error: 'asset_id wajib diisi' });
       return jsonResponse_({ ok: true, history: getHistoryData_(params.asset_id) });
+    }
+
+    if (action === 'getPhotos') {
+      requireSession_(params.token);
+      if (!params.asset_id) return jsonResponse_({ ok: false, error: 'asset_id wajib diisi' });
+      return jsonResponse_({ ok: true, photos: getPhotosData_(params.asset_id) });
     }
 
     return jsonResponse_({ ok: false, error: 'Aksi tidak dikenali: ' + action });
@@ -265,9 +221,37 @@ function getHistoryData_(assetId) {
         catatan: idxCatatan !== -1 ? (row[idxCatatan] || '') : ''
       };
     });
-  // urutkan kronologis: tanggal paling lama duluan
   entries.sort(function (a, b) { return new Date(a.tanggal) - new Date(b.tanggal); });
   return entries;
+}
+
+function getPhotosData_(assetId) {
+  let sheet = getSheet_(SHEET_FOTO);
+  if (!sheet) return [];
+  const data = sheet.getDataRange().getValues();
+  if (data.length < 2) return [];
+  const headers = data[0];
+  const idxId = headers.indexOf('id');
+  const idxAsset = headers.indexOf('asset_id');
+  const idxUrl = headers.indexOf('url_foto');
+  const idxLat = headers.indexOf('lat');
+  const idxLng = headers.indexOf('lng');
+  const idxSumber = headers.indexOf('sumber_tag');
+  const idxTanggal = headers.indexOf('tanggal');
+  const rows = data.slice(1);
+  return rows
+    .filter(function (row) { return String(row[idxAsset]) === String(assetId); })
+    .map(function (row) {
+      return {
+        id: String(row[idxId]),
+        asset_id: String(row[idxAsset]),
+        url_foto: row[idxUrl] || '',
+        lat: idxLat !== -1 ? row[idxLat] : '',
+        lng: idxLng !== -1 ? row[idxLng] : '',
+        sumber_tag: idxSumber !== -1 ? (row[idxSumber] || '') : '',
+        tanggal: idxTanggal !== -1 ? (row[idxTanggal] ? formatDate_(row[idxTanggal]) : '') : ''
+      };
+    });
 }
 
 function formatDate_(value) {
@@ -277,7 +261,7 @@ function formatDate_(value) {
   return String(value);
 }
 
-// ================= POST: create / update / delete / login / riwayat =================
+// ================= POST =================
 function doPost(e) {
   try {
     const body = JSON.parse(e.postData.contents);
@@ -308,6 +292,16 @@ function doPost(e) {
       return jsonResponse_(deleteHistoryEntry_(body.id));
     }
 
+    if (action === 'addPhoto') {
+      requireAdmin_(body.token);
+      return jsonResponse_(addPhotoEntry_(body.entry));
+    }
+
+    if (action === 'deletePhoto') {
+      requireAdmin_(body.token);
+      return jsonResponse_(deletePhotoEntry_(body.id));
+    }
+
     if (action === 'exportData') {
       const session = requireAdmin_(body.token);
       return jsonResponse_(exportData_(session.username));
@@ -326,7 +320,7 @@ function upsertAsset_(asset) {
   const headers = data[0];
   function findRowIndexById(id) {
     for (let i = 1; i < data.length; i++) {
-      if (String(data[i][0]) === String(id)) return i + 1; // 1-indexed row di sheet
+      if (String(data[i][0]) === String(id)) return i + 1;
     }
     return -1;
   }
@@ -360,7 +354,7 @@ function deleteAsset_(id) {
 
 function addHistoryEntry_(entry) {
   const sheet = getSheet_(SHEET_RIWAYAT);
-  if (!sheet) return { ok: false, error: "Sheet '" + SHEET_RIWAYAT + "' tidak ditemukan. Buat dulu sesuai petunjuk di atas kode." };
+  if (!sheet) return { ok: false, error: "Sheet '" + SHEET_RIWAYAT + "' tidak ditemukan." };
   if (!entry || !entry.asset_id) return { ok: false, error: 'asset_id wajib diisi' };
   const headers = sheet.getDataRange().getValues()[0];
   const id = 'H' + new Date().getTime() + Math.floor(Math.random() * 1000);
@@ -392,19 +386,82 @@ function deleteHistoryEntry_(id) {
   return { ok: true };
 }
 
-// ================= UTILITY: generate hash password dari editor =================
-// Cara pakai (kalau menu di Sheets belum muncul): buka Apps Script editor,
-// pilih function 'generatePasswordHash' di dropdown atas, ganti PLAIN_PASSWORD,
-// klik Run, lalu buka View > Logs (Ctrl+Enter) untuk lihat hasil hash.
+function addPhotoEntry_(entry) {
+  let sheet = getSheet_(SHEET_FOTO);
+  if (!sheet) {
+    const activeSs = SpreadsheetApp.getActiveSpreadsheet();
+    sheet = activeSs.insertSheet(SHEET_FOTO);
+    sheet.appendRow(['id', 'asset_id', 'url_foto', 'lat', 'lng', 'sumber_tag', 'tanggal']);
+  }
+  if (!entry || !entry.asset_id) return { ok: false, error: 'asset_id wajib diisi' };
+
+  let photoUrl = entry.url_foto || '';
+  if (entry.base64) {
+    try {
+      const folderName = "Foto_Aset_BPPN";
+      let folder;
+      const folders = DriveApp.getFoldersByName(folderName);
+      if (folders.hasNext()) {
+        folder = folders.next();
+      } else {
+        folder = DriveApp.createFolder(folderName);
+      }
+      const rawBase64 = entry.base64.replace(/^data:image\/\w+;base64,/, '');
+      const fileData = Utilities.base64Decode(rawBase64);
+      const blob = Utilities.newBlob(fileData, entry.mimeType || 'image/jpeg', 'foto_' + entry.asset_id + '_' + Date.now() + '.jpg');
+      const file = folder.createFile(blob);
+      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      photoUrl = "https://lh3.googleusercontent.com/d/" + file.getId();
+    } catch (e) {
+      photoUrl = entry.base64.startsWith('data:') ? entry.base64 : 'data:' + (entry.mimeType || 'image/jpeg') + ';base64,' + entry.base64;
+    }
+  }
+
+  const headers = sheet.getDataRange().getValues()[0];
+  const id = 'F' + new Date().getTime() + Math.floor(Math.random() * 1000);
+  const tanggal = formatDate_(new Date());
+  const rowValues = headers.map(function (h) {
+    if (h === 'id') return id;
+    if (h === 'asset_id') return entry.asset_id;
+    if (h === 'url_foto') return photoUrl;
+    if (h === 'lat') return entry.lat !== undefined ? entry.lat : '';
+    if (h === 'lng') return entry.lng !== undefined ? entry.lng : '';
+    if (h === 'sumber_tag') return entry.sumber_tag || '';
+    if (h === 'tanggal') return tanggal;
+    return '';
+  });
+  sheet.appendRow(rowValues);
+  return { ok: true, id: id, url_foto: photoUrl };
+}
+
+function deletePhotoEntry_(id) {
+  const sheet = getSheet_(SHEET_FOTO);
+  if (!sheet) return { ok: false, error: "Sheet '" + SHEET_FOTO + "' tidak ditemukan" };
+  const data = sheet.getDataRange().getValues();
+  const headers = data[0];
+  const idxId = headers.indexOf('id');
+  const idxUrl = headers.indexOf('url_foto');
+  for (let i = 1; i < data.length; i++) {
+    if (String(data[i][idxId]) === String(id)) {
+      const photoUrl = data[i][idxUrl];
+      sheet.deleteRow(i + 1);
+      if (photoUrl && photoUrl.includes('googleusercontent.com/d/')) {
+        try {
+          const fileId = photoUrl.split('googleusercontent.com/d/')[1];
+          if (fileId) DriveApp.getFileById(fileId).setTrashed(true);
+        } catch (e) {}
+      }
+      break;
+    }
+  }
+  return { ok: true };
+}
+
 function generatePasswordHash() {
-  const PLAIN_PASSWORD = 'GANTI_INI'; // <-- ganti dengan password asli sebelum Run
+  const PLAIN_PASSWORD = 'GANTI_INI';
   Logger.log(hashPassword_(PLAIN_PASSWORD));
 }
 
-// ================= EKSPOR: salinan data Aset & Riwayat ke Spreadsheet baru =================
-// Cuma bisa dipanggil admin (dicek lewat requireAdmin_ di doPost). Membuat
-// Google Sheet baru berisi snapshot data saat ini, lalu dicatat di tab
-// "LogEkspor" (dibuat otomatis kalau belum ada) untuk jejak audit.
 function exportData_(username) {
   const asetSheet = getSheet_(SHEET_ASET);
   const riwayatSheet = getSheet_(SHEET_RIWAYAT);
@@ -414,7 +471,6 @@ function exportData_(username) {
   const riwayatData = riwayatSheet ? riwayatSheet.getDataRange().getValues() : [['id', 'asset_id', 'no_dokumen', 'jenis_dokumen', 'tanggal', 'catatan']];
 
   const timestamp = Utilities.formatDate(new Date(), Session.getScriptTimeZone(), 'yyyy-MM-dd HH-mm');
-  // Bikin spreadsheet sementara cuma buat "media" konversi ke xlsx -- dihapus lagi di akhir.
   const tempSs = SpreadsheetApp.create('TEMP_export_' + timestamp);
   const tempId = tempSs.getId();
 
@@ -427,20 +483,15 @@ function exportData_(username) {
 
   SpreadsheetApp.flush();
 
-  // Konversi ke xlsx lewat endpoint export bawaan Google Sheets, pakai token OAuth
-  // milik eksekusi script ini (scope Drive/Sheets sudah otomatis ke-otorisasi).
   const exportUrl = 'https://docs.google.com/spreadsheets/d/' + tempId + '/export?format=xlsx';
   const response = UrlFetchApp.fetch(exportUrl, {
     headers: { Authorization: 'Bearer ' + ScriptApp.getOAuthToken() }
   });
   const base64 = Utilities.base64Encode(response.getBlob().getBytes());
 
-  // Bersihkan file sementara -- yang dipakai user cuma file .xlsx hasil unduhan.
   try {
     DriveApp.getFileById(tempId).setTrashed(true);
-  } catch (cleanupErr) {
-    // Kalau gagal dihapus, biarkan saja -- tidak fatal, cuma numpuk di Drive "Me".
-  }
+  } catch (cleanupErr) {}
 
   const jumlahAset = Math.max(0, asetData.length - 1);
   const jumlahRiwayat = Math.max(0, riwayatData.length - 1);

@@ -15,7 +15,7 @@
 
 <header>
   <div>
-    <h1>Dashboard Aset eks BPPN</h1>
+    <h1>Dashboard Aset eks BPPN & PPA</h1>
     <p>Wilayah kerja KPKNL Denpasar</p>
   </div>
   <div style="display:flex;gap:8px;align-items:center;position:relative;">
@@ -32,6 +32,11 @@
 
 <div class="toolbar">
   <input type="text" id="search" placeholder="Cari kode aset, lokasi, atau status..." style="width:260px;">
+  <select id="filterAsal">
+    <option value="all">Semua asal aset</option>
+    <option value="Eks BPPN">Eks BPPN</option>
+    <option value="Eks PT PPA">Eks PT PPA</option>
+  </select>
   <select id="filterStatus">
     <option value="all">Semua status</option>
     <option value="Dalam Penitipan">Dalam Penitipan</option>
@@ -83,20 +88,20 @@
     <thead>
       <tr>
         <th>Kode Aset</th>
+        <th>Asal Aset</th>
         <th>Lokasi</th>
         <th>Geometri</th>
         <th>Luas (m²)</th>
         <th>Status</th>
         <th>No. Dokumen</th>
         <th>Jenis Dokumen</th>
-        <th>Aksi</th></tr>
+        <th>Aksi</th>
+      </tr>
     </thead>
     <tbody id="tableBody"></tbody>
   </table>
   <div id="pagination" class="pagination"></div>
 </div>
-
-
 
 <div class="loading-overlay" id="loadingOverlay">
   <div class="spinner"></div>

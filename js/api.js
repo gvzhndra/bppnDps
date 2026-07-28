@@ -3,7 +3,6 @@
 // (fungsi sesi/login ada di js/auth.js, dipakai bersama index.html & login.html)
 // ============================
 
-// ---- Overlay loading (freeze layar saat ada operasi simpan/hapus/ekspor) ----
 function showLoading(text){
   const overlay = document.getElementById('loadingOverlay');
   const textEl = document.getElementById('loadingText');
@@ -36,7 +35,7 @@ async function apiGet(action, extraParams){
 async function apiSend(action, payload){
   const res = await fetch(API_URL, {
     method: "POST",
-    headers: { "Content-Type": "text/plain;charset=utf-8" }, // penting: hindari CORS preflight di Apps Script
+    headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify(Object.assign({ action, token: getToken() }, payload))
   });
   return res.json();
@@ -160,7 +159,61 @@ async function deleteHistoryEntry(id){
 }
 
 // ============================
-// Ekspor ke Excel (admin-only, ditegakkan juga di Code.gs)
+// Foto & Geotagging per aset
+// ============================
+async function fetchPhotos(assetId){
+  try{
+    const res = await apiGet("getPhotos", { asset_id: assetId });
+    if(!res.ok){
+      if(isSessionError(res.error)){ handleSessionExpired(); return []; }
+      alert("Gagal memuat foto: " + res.error);
+      return [];
+    }
+    return res.photos || [];
+  } catch(err){
+    alert("Gagal memuat foto: " + err);
+    return [];
+  }
+}
+async function addPhoto(entry){
+  showLoading('Mengunggah foto...');
+  try{
+    const res = await apiSend("addPhoto", { entry });
+    if(!res.ok){
+      if(isSessionError(res.error)){ handleSessionExpired(); return null; }
+      alert("Gagal menambah foto: " + res.error);
+      return null;
+    }
+    showToast('✓ Foto ditambahkan');
+    return res;
+  } catch(err){
+    alert("Gagal menambah foto: " + err);
+    return null;
+  } finally {
+    hideLoading();
+  }
+}
+async function deletePhoto(id){
+  showLoading('Menghapus foto...');
+  try{
+    const res = await apiSend("deletePhoto", { id });
+    if(!res.ok){
+      if(isSessionError(res.error)){ handleSessionExpired(); return false; }
+      alert("Gagal menghapus foto: " + res.error);
+      return false;
+    }
+    showToast('✓ Foto dihapus');
+    return true;
+  } catch(err){
+    alert("Gagal menghapus foto: " + err);
+    return false;
+  } finally {
+    hideLoading();
+  }
+}
+
+// ============================
+// Ekspor ke Excel
 // ============================
 async function exportToExcel(){
   showLoading('Menyiapkan file Excel...');
@@ -171,7 +224,6 @@ async function exportToExcel(){
       alert("Gagal ekspor: " + res.error);
       return null;
     }
-    // res.base64 berisi file .xlsx, decode lalu trigger download langsung
     const byteChars = atob(res.base64);
     const byteNumbers = new Array(byteChars.length);
     for(let i = 0; i < byteChars.length; i++){
