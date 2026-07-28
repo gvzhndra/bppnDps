@@ -63,12 +63,45 @@ function computeCentroid(coordsLatLng){
   return [cy, cx];
 }
 
+function parseCoordsFromString(val){
+  if(val === undefined || val === null) return null;
+  const str = String(val).trim();
+  if(!str) return null;
+  const match = str.match(/([-+]?\d{1,2}\.\d+)\s*[\s,]\s*([-+]?\d{1,3}\.\d+)/);
+  if(match){
+    const c1 = Number(match[1]), c2 = Number(match[2]);
+    if(!isNaN(c1) && !isNaN(c2) && !(c1 === 0 && c2 === 0)){
+      if(c1 < 15 && c1 > -15 && c2 > 90 && c2 < 150) return [c1, c2];
+      if(c2 < 15 && c2 > -15 && c1 > 90 && c1 < 150) return [c2, c1];
+      return [c1, c2];
+    }
+  }
+  return null;
+}
+
 function googleEarthUrl(lat, lng){
-  return `https://earth.google.com/web/search/${lat},+${lng}/@${lat},${lng},0a,800d,35y,0h,0t,0r`;
+  return `https://earth.google.com/web/search/${lat},+${lng}`;
 }
 
 function googleMapsUrl(lat, lng){
-  return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+  return `https://www.google.com/maps?q=${lat},${lng}&t=k`;
+}
+
+function getAssetCoordinates(a){
+  if(!a) return null;
+  if(a.geomType === "polygon" && isValidPolygonCoords(a.coords)){
+    return computeCentroid(a.coords);
+  }
+  if(a.geomType === "point" && isValidPoint(a.point)){
+    return [Number(a.point[0]), Number(a.point[1])];
+  }
+  if(a.props){
+    for(const key in a.props){
+      const parsed = parseCoordsFromString(a.props[key]);
+      if(parsed) return parsed;
+    }
+  }
+  return null;
 }
 
 function defaultAssetProps(overrides){
