@@ -5,7 +5,7 @@
  *
  * 1) Tab "Aset" (data aset)
  *    Header baris pertama, urutan bebas asal nama sama:
- *      id | kode_aset | lokasi | status | kategori_penitipan | keterangan_kategori | luas | no_dokumen | jenis_dokumen | catatan | link_folder | geom_type | geometry_json
+ *      id | kode_aset | asal_aset | lokasi | status | kategori_penitipan | keterangan_kategori | luas_tanah | luas_bangunan | no_dokumen | jenis_dokumen | catatan | link_folder | geom_type | geometry_json
  *    Kolom "id", "geom_type", "geometry_json" WAJIB ada (dipakai sistem).
  *
  * 2) Tab "Riwayat" (riwayat dokumen per aset)
@@ -168,6 +168,14 @@ function doGet(e) {
   }
 }
 
+function normalizeKey_(key) {
+  const s = String(key || '').trim().toLowerCase().replace(/\s+/g, '_');
+  if (s === 'asal' || s === 'asal_asset' || s === 'asal_aset_bppn_ppa') return 'asal_aset';
+  if (s === 'luas_tanah_m2' || s === 'luas_tanah_(m2)') return 'luas_tanah';
+  if (s === 'luas_bangunan_m2' || s === 'luas_bangunan_(m2)') return 'luas_bangunan';
+  return s;
+}
+
 function getAsetData_() {
   const sheet = getSheet_(SHEET_ASET);
   if (!sheet) return { ok: false, error: "Sheet '" + SHEET_ASET + "' tidak ditemukan" };
@@ -195,7 +203,11 @@ function getAsetData_() {
       try { geometry = JSON.parse(obj.geometry_json || 'null'); } catch (err) { geometry = null; }
       const props = {};
       headers.forEach(function (h) {
-        if (RESERVED_COLUMNS.indexOf(h) === -1) props[h] = obj[h];
+        if (RESERVED_COLUMNS.indexOf(h) === -1) {
+          props[h] = obj[h];
+          const norm = normalizeKey_(h);
+          if (norm && norm !== h) props[norm] = obj[h];
+        }
       });
       return {
         id: assetId,
@@ -339,7 +351,11 @@ function upsertAsset_(asset) {
     if (h === 'id') return asset.id;
     if (h === 'geom_type') return asset.geomType;
     if (h === 'geometry_json') return JSON.stringify(asset.geometry);
-    return (asset.props && asset.props[h] !== undefined) ? asset.props[h] : '';
+    if (!asset.props) return '';
+    const norm = normalizeKey_(h);
+    if (asset.props[h] !== undefined) return asset.props[h];
+    if (asset.props[norm] !== undefined) return asset.props[norm];
+    return '';
   });
   const rowIndex = findRowIndexById(asset.id);
   if (rowIndex === -1) {

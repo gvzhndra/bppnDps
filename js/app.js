@@ -2,6 +2,19 @@ function newId(){
   return "A" + Date.now() + Math.floor(Math.random()*1000);
 }
 
+function getNormalizedAsalAset(val) {
+  const str = String(val || '').trim().toLowerCase();
+  if (str.includes('ppa')) return "Eks PT PPA";
+  return "Eks BPPN";
+}
+
+function isMobileOrTablet() {
+  const ua = navigator.userAgent || navigator.vendor || window.opera;
+  const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Tablet/i.test(ua);
+  const hasTouch = ('ontouchstart' in window) || (navigator.maxTouchPoints > 0);
+  return isMobileUA || (hasTouch && window.innerWidth <= 1024);
+}
+
 function geometryToInternal(geomType, geometry){
   if(!geometry) return geomType === "point" ? [-8.65, 115.22] : [];
   if(geomType === "point"){
@@ -114,6 +127,8 @@ function defaultAssetProps(overrides){
     keterangan_kategori: "",
     jenis_pemanfaatan: "",
     alasan_selesai_penitipan: "",
+    luas_tanah: 0,
+    luas_bangunan: 0,
     luas: 0,
     no_dokumen: "",
     jenis_dokumen: "",
@@ -257,14 +272,7 @@ function visibleFeatures(){
   return features.filter(a => {
     if(fStatus !== 'all' && a.props.kategori_penitipan !== fStatus) return false;
     if(fAsal !== 'all'){
-      const val = (a.props.asal_aset || '').toLowerCase();
-      if(fAsal === 'Eks BPPN'){
-        if(val && !val.includes('bppn') && val.includes('ppa')) return false;
-      } else if(fAsal === 'Eks PT PPA'){
-        if(!val.includes('ppa')) return false;
-      } else {
-        if(a.props.asal_aset !== fAsal) return false;
-      }
+      if(getNormalizedAsalAset(a.props.asal_aset) !== fAsal) return false;
     }
     if(!matchesSearch(a, s)) return false;
     return true;
@@ -306,11 +314,15 @@ function renderAll(){
   pageItems.forEach(a => {
     const tr = document.createElement('tr');
     const geomLabel = a.geomType === "point" ? "Titik" : "Poligon";
+    const luasTanahVal = Number(a.props.luas_tanah !== undefined && a.props.luas_tanah !== '' ? a.props.luas_tanah : (a.props.luas || 0));
+    const luasBangunanVal = Number(a.props.luas_bangunan || 0);
+
     tr.innerHTML = `<td>${escapeHtml(a.props.kode_aset || "-")}</td>
-      <td><span class="badge" style="background:#1B3A5C;">${escapeHtml(a.props.asal_aset || "Eks BPPN")}</span></td>
+      <td><span class="badge" style="background:#1B3A5C;">${escapeHtml(getNormalizedAsalAset(a.props.asal_aset))}</span></td>
       <td>${escapeHtml(a.props.lokasi || "-")}</td>
       <td>${geomLabel}</td>
-      <td>${Number(a.props.luas || 0).toLocaleString('id-ID')}</td>
+      <td>${luasTanahVal.toLocaleString('id-ID')}</td>
+      <td>${luasBangunanVal.toLocaleString('id-ID')}</td>
       <td><div class="badge-group">${statusBadgesHtml(a.props)}</div></td>
       <td>${escapeHtml(a.props.no_dokumen || "-")}</td>
       <td>${escapeHtml(a.props.jenis_dokumen || "-")}</td>
@@ -330,14 +342,25 @@ function renderAll(){
     return !isValidPolygonCoords(a.coords);
   }).length;
   const batasBelumDitemukan = vis.filter(a => a.geomType !== "polygon").length;
-  const belumDimanfaatkanCount = vis.filter(a => !a.props.kategori_penitipan || a.props.kategori_penitipan === "Belum Dimanfaatkan").length;
+  const sudahDimanfaatkanCount = vis.filter(a => a.props.kategori_penitipan === "Sudah Dimanfaatkan" || a.props.kategori_penitipan === "Dimanfaatkan").length;
+  const belumDimanfaatkanCount = vis.filter(a => a.props.kategori_penitipan === "Belum Dimanfaatkan").length;
   const bermasalahCount = vis.filter(a => a.props.kategori_penitipan === "Bermasalah Hukum").length;
   const lainLainCount = vis.filter(a => a.props.kategori_penitipan === "Lain-lain").length;
 
+  const totalLuasTanah = vis.reduce((s,a) => s + Number(a.props.luas_tanah !== undefined && a.props.luas_tanah !== '' ? a.props.luas_tanah : (a.props.luas || 0)), 0);
+  const totalLuasBangunan = vis.reduce((s,a) => s + Number(a.props.luas_bangunan || 0), 0);
+
   document.getElementById('statTotal').textContent = vis.length;
-  document.getElementById('statLuas').textContent = vis.reduce((s,a)=>s+Number(a.props.luas || 0),0).toLocaleString('id-ID');
+  const statLuasTanahEl = document.getElementById('statLuasTanah');
+  const statLuasBangunanEl = document.getElementById('statLuasBangunan');
+  const statLuasEl = document.getElementById('statLuas');
+  if(statLuasTanahEl) statLuasTanahEl.textContent = totalLuasTanah.toLocaleString('id-ID');
+  if(statLuasBangunanEl) statLuasBangunanEl.textContent = totalLuasBangunan.toLocaleString('id-ID');
+  if(statLuasEl) statLuasEl.textContent = totalLuasTanah.toLocaleString('id-ID');
   document.getElementById('statTitik').textContent = belumPunyaKoordinat;
   document.getElementById('statPolygon').textContent = batasBelumDitemukan;
+  const statSudahEl = document.getElementById('statSudahDimanfaatkan');
+  if(statSudahEl) statSudahEl.textContent = sudahDimanfaatkanCount;
   document.getElementById('statBelumDimanfaatkan').textContent = belumDimanfaatkanCount;
   document.getElementById('statBermasalah').textContent = bermasalahCount;
   document.getElementById('statBerakhir').textContent = lainLainCount;
@@ -459,9 +482,10 @@ function renderViewPanel(a){
     <div class="view-row"><span class="view-label">ID Sistem</span><span class="view-value" style="font-family:monospace;font-size:11px;">${escapeHtml(a.id)}</span></div>
     <p class="small-note" style="margin:-4px 0 8px;">↑ Ini yang harus dipakai sebagai <code>asset_id</code> jika menambah riwayat manual lewat tab Riwayat di Sheets.</p>
     <div class="view-row"><span class="view-label">Kode aset</span><span class="view-value">${escapeHtml(a.props.kode_aset || "-")}</span></div>
-    <div class="view-row"><span class="view-label">Asal aset</span><span class="view-value"><span class="badge" style="background:#1B3A5C;">${escapeHtml(a.props.asal_aset || "Eks BPPN")}</span></span></div>
+    <div class="view-row"><span class="view-label">Asal aset</span><span class="view-value"><span class="badge" style="background:#1B3A5C;">${escapeHtml(getNormalizedAsalAset(a.props.asal_aset))}</span></span></div>
     <div class="view-row"><span class="view-label">Lokasi</span><span class="view-value">${escapeHtml(a.props.lokasi || "-")}</span></div>
-    <div class="view-row"><span class="view-label">Luas (m²)</span><span class="view-value">${Number(a.props.luas||0).toLocaleString('id-ID')}</span></div>
+    <div class="view-row"><span class="view-label">Luas tanah (m²)</span><span class="view-value">${Number(a.props.luas_tanah !== undefined && a.props.luas_tanah !== '' ? a.props.luas_tanah : (a.props.luas||0)).toLocaleString('id-ID')}</span></div>
+    <div class="view-row"><span class="view-label">Luas bangunan (m²)</span><span class="view-value">${Number(a.props.luas_bangunan||0).toLocaleString('id-ID')}</span></div>
     <div class="view-row"><span class="view-label">Status</span><div class="badge-group">${statusBadgesHtml(a.props)}</div></div>
     ${kategoriRow}
     ${keteranganKategoriRow}
@@ -496,9 +520,20 @@ function renderViewPanel(a){
     ${actionButtons}
   `;
 
-  document.getElementById('btnTambahFoto').addEventListener('click', () => {
-    document.getElementById('foto-input').click();
-  });
+  const btnFoto = document.getElementById('btnTambahFoto');
+  if (btnFoto) {
+    if (!isMobileOrTablet()) {
+      btnFoto.disabled = true;
+      btnFoto.style.opacity = '0.55';
+      btnFoto.style.cursor = 'not-allowed';
+      btnFoto.title = 'Fitur ini khusus untuk smartphone/tablet (HP dengan kamera & GPS).';
+      btnFoto.innerHTML = '📷 Tambah foto (khusus HP/Tablet)';
+    } else {
+      btnFoto.addEventListener('click', () => {
+        document.getElementById('foto-input').click();
+      });
+    }
+  }
   document.getElementById('foto-input').addEventListener('change', async (e) => {
     const file = e.target.files && e.target.files[0];
     e.target.value = '';
@@ -786,23 +821,25 @@ function renderEditPanel(a){
     </div>
   ` : '';
 
+  const currentAsal = getNormalizedAsalAset(a.props.asal_aset);
   const panel = document.getElementById('sidePanel');
   panel.innerHTML = `
     <h3>Edit aset ${a.geomType === "point" ? '<span class="badge" style="background:#6B7280;">titik</span>' : '<span class="badge" style="background:#4C8C3F;">poligon</span>'}</h3>
     <div class="field"><label>Kode aset</label><input type="text" id="f-kode_aset" value="${escapeHtml(a.props.kode_aset || "")}"></div>
     <div class="field"><label>Asal aset</label>
       <select id="f-asal_aset">
-        ${ASAL_ASET_OPTIONS.map(o => `<option value="${o}" ${o===(a.props.asal_aset || 'Eks BPPN')?'selected':''}>${o}</option>`).join('')}
+        ${ASAL_ASET_OPTIONS.map(o => `<option value="${o}" ${o===currentAsal?'selected':''}>${o}</option>`).join('')}
       </select>
     </div>
     <div class="field"><label>Lokasi</label><input type="text" id="f-lokasi" value="${escapeHtml(a.props.lokasi || "")}"></div>
     <div class="row2">
-      <div class="field"><label>Luas (m²)</label><input type="number" id="f-luas" value="${a.props.luas || 0}"></div>
-      <div class="field"><label>Status</label>
-        <select id="f-status">
-          ${STATUS_OPTIONS.map(s => `<option value="${s}" ${s===a.props.status?'selected':''}>${s}</option>`).join('')}
-        </select>
-      </div>
+      <div class="field"><label>Luas tanah (m²)</label><input type="number" id="f-luas_tanah" value="${a.props.luas_tanah !== undefined && a.props.luas_tanah !== '' ? a.props.luas_tanah : (a.props.luas || 0)}"></div>
+      <div class="field"><label>Luas bangunan (m²)</label><input type="number" id="f-luas_bangunan" value="${a.props.luas_bangunan || 0}"></div>
+    </div>
+    <div class="field"><label>Status</label>
+      <select id="f-status">
+        ${STATUS_OPTIONS.map(s => `<option value="${s}" ${s===a.props.status?'selected':''}>${s}</option>`).join('')}
+      </select>
     </div>
     <div class="field" id="wrap-kategori" style="display:none;">
       <label>Kategori</label>
@@ -852,7 +889,9 @@ function renderEditPanel(a){
     a.props.kode_aset = document.getElementById('f-kode_aset').value;
     a.props.asal_aset = document.getElementById('f-asal_aset').value;
     a.props.lokasi = document.getElementById('f-lokasi').value;
-    a.props.luas = Number(document.getElementById('f-luas').value) || 0;
+    a.props.luas_tanah = Number(document.getElementById('f-luas_tanah').value) || 0;
+    a.props.luas_bangunan = Number(document.getElementById('f-luas_bangunan').value) || 0;
+    a.props.luas = a.props.luas_tanah;
     a.props.status = document.getElementById('f-status').value;
     a.props.kategori_penitipan = a.props.status === "Dalam Penitipan" ? document.getElementById('f-kategori_penitipan').value : "";
     a.props.keterangan_kategori = (a.props.status === "Dalam Penitipan" && a.props.kategori_penitipan === "Lain-lain") ? document.getElementById('f-keterangan_kategori').value : "";
@@ -921,7 +960,11 @@ function renderEditPanel(a){
       delete a.point;
       if(feature && feature.properties){
         const p = feature.properties;
-        if(p.luas || p.area) a.props.luas = p.luas || p.area;
+        if(p.luas_tanah || p.luas || p.area) {
+          a.props.luas_tanah = p.luas_tanah || p.luas || p.area;
+          a.props.luas = a.props.luas_tanah;
+        }
+        if(p.luas_bangunan) a.props.luas_bangunan = p.luas_bangunan;
       }
       renderAll();
       selectAsset(a.id, 'edit');

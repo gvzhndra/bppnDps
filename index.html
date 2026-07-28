@@ -39,6 +39,7 @@
   </select>
   <select id="filterStatus">
     <option value="all">Semua kategori</option>
+    <option value="Sudah Dimanfaatkan">Sudah Dimanfaatkan</option>
     <option value="Belum Dimanfaatkan">Belum Dimanfaatkan</option>
     <option value="Bermasalah Hukum">Bermasalah Hukum</option>
     <option value="Lain-lain">Lain-lain</option>
@@ -50,12 +51,14 @@
 
 <div class="stats">
   <div class="stat"><span>Total aset</span><strong id="statTotal">0</strong></div>
-  <div class="stat"><span>Total luas (m²)</span><strong id="statLuas">0</strong></div>
+  <div class="stat"><span>Luas Tanah (m²)</span><strong id="statLuasTanah">0</strong></div>
+  <div class="stat"><span>Luas Bangunan (m²)</span><strong id="statLuasBangunan">0</strong></div>
   <div class="stat"><span>Belum Punya Koordinat</span><strong id="statTitik">0</strong></div>
   <div class="stat"><span>Batas Belum Ditemukan</span><strong id="statPolygon">0</strong></div>
 </div>
 
 <div class="stats-secondary">
+  <div class="stat-sub" style="border-left-color:#1D9E75;"><span>Sudah Dimanfaatkan</span><strong id="statSudahDimanfaatkan">0</strong></div>
   <div class="stat-sub" style="border-left-color:#94A3B8;"><span>Belum Dimanfaatkan</span><strong id="statBelumDimanfaatkan">0</strong></div>
   <div class="stat-sub" style="border-left-color:#B23A3A;"><span>Bermasalah Hukum</span><strong id="statBermasalah">0</strong></div>
   <div class="stat-sub" style="border-left-color:#7C3AED;"><span>Lain-lain</span><strong id="statBerakhir">0</strong></div>
@@ -84,7 +87,8 @@
         <th>Asal Aset</th>
         <th>Lokasi</th>
         <th>Geometri</th>
-        <th>Luas (m²)</th>
+        <th>Luas Tanah (m²)</th>
+        <th>Luas Bangunan (m²)</th>
         <th>Status</th>
         <th>No. Dokumen</th>
         <th>Jenis Dokumen</th>

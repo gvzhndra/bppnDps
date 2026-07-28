@@ -8,15 +8,15 @@ const statusColor = {
   "Dalam Penitipan": "#4C8C3F"
 };
 
-// Warna badge untuk kategori (relevan saat status = Dalam Penitipan)
 const kategoriColor = {
+  "Sudah Dimanfaatkan": "#1D9E75",
   "Belum Dimanfaatkan": "#94A3B8",
   "Bermasalah Hukum": "#B23A3A",
   "Lain-lain": "#7C3AED"
 };
 
 const STATUS_OPTIONS = ["Dalam Penitipan"];
-const KATEGORI_OPTIONS = ["Belum Dimanfaatkan", "Bermasalah Hukum", "Lain-lain"];
+const KATEGORI_OPTIONS = ["Sudah Dimanfaatkan", "Belum Dimanfaatkan", "Bermasalah Hukum", "Lain-lain"];
 const ASAL_ASET_OPTIONS = ["Eks BPPN", "Eks PT PPA"];
 
 const RESERVED_COLUMNS = [
@@ -42,9 +42,12 @@ const CORE_PROPS = [
   "lokasi",
   "status",
   "kategori_penitipan",
+  "keterangan_kategori",
   "jenis_pemanfaatan",
   "alasan_selesai_penitipan",
   "luas",
+  "luas_tanah",
+  "luas_bangunan",
   "no_dokumen",
   "jenis_dokumen",
   "catatan",
