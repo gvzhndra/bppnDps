@@ -1,9 +1,6 @@
 // ================= KONFIGURASI =================
 // Ganti dengan URL Web App hasil deploy Apps Script kamu (lihat Code.gs)
-//const API_URL = "https://script.google.com/macros/s/AKfycbz_RG7cDsnaTIR-dT4YpiOpcHZFuB5BFGh10E4fS4CyOLSF9YT8uYEyQMipm54J64c0cQ/exec";
-const API_URL = "https://script.google.com/macros/s/AKfycbwQmsq806xBoepakiGemP097w_DSsVgCd8S87KBZ_M23aiWnLp24o7VbqP5JT0NKJ6r/exec";
-
-
+const API_URL = "https://script.google.com/macros/s/AKfycbz_RG7cDsnaTIR-dT4YpiOpcHZFuB5BFGh10E4fS4CyOLSF9YT8uYEyQMipm54J64c0cQ/exec";
 // =================================================
 
 // Warna badge untuk status utama
@@ -21,6 +18,7 @@ const kategoriColor = {
 
 const STATUS_OPTIONS = ["Dalam Penitipan", "Penitipan Berakhir"];
 const KATEGORI_OPTIONS = ["Belum Dimanfaatkan", "Pemanfaatan", "Bermasalah Hukum"];
+const ASAL_ASET_OPTIONS = ["Eks BPPN", "Eks PT PPA"];
 
 const RESERVED_COLUMNS = [
   "id",
@@ -35,10 +33,13 @@ let features = [];
 let selectedId = null;
 let leafletLayers = {};
 let sheetHeaders = [];
+let currentPage = 1;
+const TABLE_PAGE_SIZE = 20;
 
 // Field yang punya perlakuan/form khusus di UI (bukan field custom generik)
 const CORE_PROPS = [
     "kode_aset",
+    "asal_aset",
     "lokasi",
     "status",
     "kategori_penitipan",
