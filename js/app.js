@@ -8,6 +8,22 @@ function getNormalizedAsalAset(val) {
   return "Eks BPPN";
 }
 
+function getLuasTanah(props) {
+  if(!props) return 0;
+  if(props.luas_tanah !== undefined && props.luas_tanah !== null && props.luas_tanah !== '') return Number(props.luas_tanah) || 0;
+  if(props['Luas Tanah'] !== undefined && props['Luas Tanah'] !== null && props['Luas Tanah'] !== '') return Number(props['Luas Tanah']) || 0;
+  if(props.luas !== undefined && props.luas !== null && props.luas !== '') return Number(props.luas) || 0;
+  if(props['Luas'] !== undefined && props['Luas'] !== null && props['Luas'] !== '') return Number(props['Luas']) || 0;
+  return 0;
+}
+
+function getLuasBangunan(props) {
+  if(!props) return 0;
+  if(props.luas_bangunan !== undefined && props.luas_bangunan !== null && props.luas_bangunan !== '') return Number(props.luas_bangunan) || 0;
+  if(props['Luas Bangunan'] !== undefined && props['Luas Bangunan'] !== null && props['Luas Bangunan'] !== '') return Number(props['Luas Bangunan']) || 0;
+  return 0;
+}
+
 function isMobileOrTablet() {
   const ua = navigator.userAgent || navigator.vendor || window.opera;
   const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Tablet/i.test(ua);
@@ -314,8 +330,8 @@ function renderAll(){
   pageItems.forEach(a => {
     const tr = document.createElement('tr');
     const geomLabel = a.geomType === "point" ? "Titik" : "Poligon";
-    const luasTanahVal = Number(a.props.luas_tanah !== undefined && a.props.luas_tanah !== '' ? a.props.luas_tanah : (a.props.luas || 0));
-    const luasBangunanVal = Number(a.props.luas_bangunan || 0);
+    const luasTanahVal = getLuasTanah(a.props);
+    const luasBangunanVal = getLuasBangunan(a.props);
 
     tr.innerHTML = `<td>${escapeHtml(a.props.kode_aset || "-")}</td>
       <td><span class="badge" style="background:#1B3A5C;">${escapeHtml(getNormalizedAsalAset(a.props.asal_aset))}</span></td>
@@ -347,8 +363,8 @@ function renderAll(){
   const bermasalahCount = vis.filter(a => a.props.kategori_penitipan === "Bermasalah Hukum").length;
   const lainLainCount = vis.filter(a => a.props.kategori_penitipan === "Lain-lain").length;
 
-  const totalLuasTanah = vis.reduce((s,a) => s + Number(a.props.luas_tanah !== undefined && a.props.luas_tanah !== '' ? a.props.luas_tanah : (a.props.luas || 0)), 0);
-  const totalLuasBangunan = vis.reduce((s,a) => s + Number(a.props.luas_bangunan || 0), 0);
+  const totalLuasTanah = vis.reduce((s,a) => s + getLuasTanah(a.props), 0);
+  const totalLuasBangunan = vis.reduce((s,a) => s + getLuasBangunan(a.props), 0);
 
   document.getElementById('statTotal').textContent = vis.length;
   const statLuasTanahEl = document.getElementById('statLuasTanah');
@@ -425,6 +441,9 @@ function selectAsset(id, mode){
   }
   if(panelMode === 'edit') renderEditPanel(a);
   else renderViewPanel(a);
+
+  const panel = document.getElementById('sidePanel');
+  if(panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 function renderViewPanel(a){
@@ -484,8 +503,8 @@ function renderViewPanel(a){
     <div class="view-row"><span class="view-label">Kode aset</span><span class="view-value">${escapeHtml(a.props.kode_aset || "-")}</span></div>
     <div class="view-row"><span class="view-label">Asal aset</span><span class="view-value"><span class="badge" style="background:#1B3A5C;">${escapeHtml(getNormalizedAsalAset(a.props.asal_aset))}</span></span></div>
     <div class="view-row"><span class="view-label">Lokasi</span><span class="view-value">${escapeHtml(a.props.lokasi || "-")}</span></div>
-    <div class="view-row"><span class="view-label">Luas tanah (m²)</span><span class="view-value">${Number(a.props.luas_tanah !== undefined && a.props.luas_tanah !== '' ? a.props.luas_tanah : (a.props.luas||0)).toLocaleString('id-ID')}</span></div>
-    <div class="view-row"><span class="view-label">Luas bangunan (m²)</span><span class="view-value">${Number(a.props.luas_bangunan||0).toLocaleString('id-ID')}</span></div>
+    <div class="view-row"><span class="view-label">Luas tanah (m²)</span><span class="view-value">${getLuasTanah(a.props).toLocaleString('id-ID')}</span></div>
+    <div class="view-row"><span class="view-label">Luas bangunan (m²)</span><span class="view-value">${getLuasBangunan(a.props).toLocaleString('id-ID')}</span></div>
     <div class="view-row"><span class="view-label">Status</span><div class="badge-group">${statusBadgesHtml(a.props)}</div></div>
     ${kategoriRow}
     ${keteranganKategoriRow}
@@ -833,8 +852,8 @@ function renderEditPanel(a){
     </div>
     <div class="field"><label>Lokasi</label><input type="text" id="f-lokasi" value="${escapeHtml(a.props.lokasi || "")}"></div>
     <div class="row2">
-      <div class="field"><label>Luas tanah (m²)</label><input type="number" id="f-luas_tanah" value="${a.props.luas_tanah !== undefined && a.props.luas_tanah !== '' ? a.props.luas_tanah : (a.props.luas || 0)}"></div>
-      <div class="field"><label>Luas bangunan (m²)</label><input type="number" id="f-luas_bangunan" value="${a.props.luas_bangunan || 0}"></div>
+      <div class="field"><label>Luas tanah (m²)</label><input type="number" id="f-luas_tanah" value="${getLuasTanah(a.props)}"></div>
+      <div class="field"><label>Luas bangunan (m²)</label><input type="number" id="f-luas_bangunan" value="${getLuasBangunan(a.props)}"></div>
     </div>
     <div class="field"><label>Status</label>
       <select id="f-status">
@@ -918,6 +937,20 @@ function renderEditPanel(a){
   document.getElementById('btnCancelEdit').addEventListener('click', () => {
     selectAsset(a.id, 'view');
   });
+
+  const btnApply = document.getElementById('btnApplyGeojson');
+  const geojsonInput = document.getElementById('f-geojson');
+  if (btnApply && geojsonInput) {
+    const updateBtnState = () => {
+      const hasText = !!geojsonInput.value.trim();
+      btnApply.disabled = !hasText;
+      btnApply.style.opacity = hasText ? '1' : '0.5';
+      btnApply.style.cursor = hasText ? 'pointer' : 'not-allowed';
+    };
+    updateBtnState();
+    geojsonInput.addEventListener('input', updateBtnState);
+  }
+
   document.getElementById('btnApplyGeojson').addEventListener('click', () => {
     const raw = document.getElementById('f-geojson').value.trim();
     if(!raw) return;
