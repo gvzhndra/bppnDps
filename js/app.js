@@ -111,6 +111,7 @@ function defaultAssetProps(overrides){
     lokasi: "",
     status: "Dalam Penitipan",
     kategori_penitipan: "Belum Dimanfaatkan",
+    keterangan_kategori: "",
     jenis_pemanfaatan: "",
     alasan_selesai_penitipan: "",
     luas: 0,
@@ -125,7 +126,11 @@ function statusBadgesHtml(props){
   let html = `<span class="badge" style="background:${statusColor[props.status]||'#6B7280'}">${escapeHtml(props.status || "-")}</span>`;
   if(props.status === "Dalam Penitipan" && props.kategori_penitipan){
     const kColor = kategoriColor[props.kategori_penitipan] || '#6B7280';
-    html += ` <span class="badge" style="background:${kColor}">${escapeHtml(props.kategori_penitipan)}</span>`;
+    let label = escapeHtml(props.kategori_penitipan);
+    if(props.kategori_penitipan === "Lain-lain" && props.keterangan_kategori){
+      label += ` (${escapeHtml(props.keterangan_kategori)})`;
+    }
+    html += ` <span class="badge" style="background:${kColor}">${label}</span>`;
   }
   return html;
 }
@@ -327,9 +332,8 @@ function renderAll(){
   const batasBelumDitemukan = vis.filter(a => a.geomType !== "polygon").length;
   const dalamPenitipan = vis.filter(a => a.props.status === "Dalam Penitipan");
   const belumDimanfaatkanCount = dalamPenitipan.filter(a => !a.props.kategori_penitipan || a.props.kategori_penitipan === "Belum Dimanfaatkan").length;
-  const pemanfaatanCount = dalamPenitipan.filter(a => a.props.kategori_penitipan === "Pemanfaatan").length;
   const bermasalahCount = dalamPenitipan.filter(a => a.props.kategori_penitipan === "Bermasalah Hukum").length;
-  const berakhirCount = vis.filter(a => a.props.status === "Penitipan Berakhir").length;
+  const lainLainCount = dalamPenitipan.filter(a => a.props.kategori_penitipan === "Lain-lain").length;
 
   document.getElementById('statTotal').textContent = vis.length;
   document.getElementById('statLuas').textContent = vis.reduce((s,a)=>s+Number(a.props.luas || 0),0).toLocaleString('id-ID');
@@ -337,9 +341,8 @@ function renderAll(){
   document.getElementById('statPolygon').textContent = batasBelumDitemukan;
   document.getElementById('statDalamPenitipan').textContent = dalamPenitipan.length;
   document.getElementById('statBelumDimanfaatkan').textContent = belumDimanfaatkanCount;
-  document.getElementById('statPemanfaatan').textContent = pemanfaatanCount;
   document.getElementById('statBermasalah').textContent = bermasalahCount;
-  document.getElementById('statBerakhir').textContent = berakhirCount;
+  document.getElementById('statBerakhir').textContent = lainLainCount;
 }
 
 function renderPagination(totalItems, totalPages){
@@ -428,12 +431,10 @@ function renderViewPanel(a){
   const kategoriRow = (a.props.status === "Dalam Penitipan" && a.props.kategori_penitipan)
     ? `<div class="view-row"><span class="view-label">Kategori</span><span class="view-value">${escapeHtml(a.props.kategori_penitipan)}</span></div>`
     : '';
-  const jenisPemanfaatanRow = (a.props.status === "Dalam Penitipan" && a.props.kategori_penitipan === "Pemanfaatan" && a.props.jenis_pemanfaatan)
-    ? `<div class="view-row"><span class="view-label">Jenis pemanfaatan</span><span class="view-value">${escapeHtml(a.props.jenis_pemanfaatan)}</span></div>`
+  const keteranganKategoriRow = (a.props.status === "Dalam Penitipan" && a.props.kategori_penitipan === "Lain-lain" && a.props.keterangan_kategori)
+    ? `<div class="view-row"><span class="view-label">Keterangan kategori</span><span class="view-value">${escapeHtml(a.props.keterangan_kategori)}</span></div>`
     : '';
-  const alasanRow = (a.props.status === "Penitipan Berakhir" && a.props.alasan_selesai_penitipan)
-    ? `<div class="view-row"><span class="view-label">Alasan selesai</span><span class="view-value">${escapeHtml(a.props.alasan_selesai_penitipan)}</span></div>`
-    : '';
+  const alasanRow = '';
   const linkFolderRow = a.props.link_folder
     ? `<div class="view-row"><span class="view-label">Folder berkas</span><span class="view-value"><a href="${escapeHtml(a.props.link_folder)}" target="_blank" rel="noopener" style="color:#1F78B4;">Link dokumen</a></span></div>`
     : '';
@@ -465,8 +466,7 @@ function renderViewPanel(a){
     <div class="view-row"><span class="view-label">Luas (m²)</span><span class="view-value">${Number(a.props.luas||0).toLocaleString('id-ID')}</span></div>
     <div class="view-row"><span class="view-label">Status</span><div class="badge-group">${statusBadgesHtml(a.props)}</div></div>
     ${kategoriRow}
-    ${jenisPemanfaatanRow}
-    ${alasanRow}
+    ${keteranganKategoriRow}
     <div class="view-row"><span class="view-label">No. Dokumen</span><span class="view-value">${escapeHtml(a.props.no_dokumen || "-")}</span></div>
     <div class="view-row"><span class="view-label">Jenis dokumen</span><span class="view-value">${escapeHtml(a.props.jenis_dokumen || "-")}</span></div>
     <div class="view-row"><span class="view-label">Catatan</span><span class="view-value">${escapeHtml(a.props.catatan || "-")}</span></div>
@@ -812,6 +812,10 @@ function renderEditPanel(a){
         ${KATEGORI_OPTIONS.map(k => `<option value="${k}" ${k===a.props.kategori_penitipan?'selected':''}>${k}</option>`).join('')}
       </select>
     </div>
+    <div class="field" id="wrap-keterangan_kategori" style="display:none;">
+      <label>Keterangan kategori (wajib diisi untuk "Lain-lain")</label>
+      <input type="text" id="f-keterangan_kategori" value="${escapeHtml(a.props.keterangan_kategori || '')}" placeholder="mis. Sedang berperkara, disita, dll.">
+    </div>
     <div class="field" id="wrap-jenis_pemanfaatan" style="display:none;">
       <label>Jenis pemanfaatan (ketik manual)</label>
       <input type="text" id="f-jenis_pemanfaatan" value="${escapeHtml(a.props.jenis_pemanfaatan || "")}" placeholder="mis. disewakan ke Dinas X, dipakai gudang, dll.">
@@ -837,12 +841,10 @@ function renderEditPanel(a){
   function updateConditionalFields(){
     const status = document.getElementById('f-status').value;
     const wrapKategori = document.getElementById('wrap-kategori');
-    const wrapJenis = document.getElementById('wrap-jenis_pemanfaatan');
-    const wrapAlasan = document.getElementById('wrap-alasan');
+    const wrapKeterangan = document.getElementById('wrap-keterangan_kategori');
     wrapKategori.style.display = status === "Dalam Penitipan" ? '' : 'none';
-    wrapAlasan.style.display = status === "Penitipan Berakhir" ? '' : 'none';
     const kategori = document.getElementById('f-kategori_penitipan').value;
-    wrapJenis.style.display = (status === "Dalam Penitipan" && kategori === "Pemanfaatan") ? '' : 'none';
+    wrapKeterangan.style.display = (status === "Dalam Penitipan" && kategori === "Lain-lain") ? '' : 'none';
   }
   updateConditionalFields();
   document.getElementById('f-status').addEventListener('change', updateConditionalFields);
@@ -855,8 +857,9 @@ function renderEditPanel(a){
     a.props.luas = Number(document.getElementById('f-luas').value) || 0;
     a.props.status = document.getElementById('f-status').value;
     a.props.kategori_penitipan = a.props.status === "Dalam Penitipan" ? document.getElementById('f-kategori_penitipan').value : "";
-    a.props.jenis_pemanfaatan = (a.props.status === "Dalam Penitipan" && a.props.kategori_penitipan === "Pemanfaatan") ? document.getElementById('f-jenis_pemanfaatan').value : "";
-    a.props.alasan_selesai_penitipan = a.props.status === "Penitipan Berakhir" ? document.getElementById('f-alasan_selesai_penitipan').value : "";
+    a.props.keterangan_kategori = (a.props.status === "Dalam Penitipan" && a.props.kategori_penitipan === "Lain-lain") ? document.getElementById('f-keterangan_kategori').value : "";
+    a.props.jenis_pemanfaatan = "";
+    a.props.alasan_selesai_penitipan = "";
     a.props.no_dokumen = document.getElementById('f-no_dokumen').value;
     a.props.jenis_dokumen = document.getElementById('f-jenis_dokumen').value;
     a.props.catatan = document.getElementById('f-catatan').value;

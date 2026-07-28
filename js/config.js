@@ -5,19 +5,18 @@ const API_URL = "https://script.google.com/macros/s/AKfycbwQmsq806xBoepakiGemP09
 
 // Warna badge untuk status utama
 const statusColor = {
-  "Dalam Penitipan": "#4C8C3F",
-  "Penitipan Berakhir": "#B8790F"
+  "Dalam Penitipan": "#4C8C3F"
 };
 
-// Warna badge untuk kategori tambahan (cuma relevan kalau status = Dalam Penitipan)
+// Warna badge untuk kategori (relevan saat status = Dalam Penitipan)
 const kategoriColor = {
   "Belum Dimanfaatkan": "#94A3B8",
-  "Pemanfaatan": "#1F78B4",
-  "Bermasalah Hukum": "#B23A3A"
+  "Bermasalah Hukum": "#B23A3A",
+  "Lain-lain": "#7C3AED"
 };
 
-const STATUS_OPTIONS = ["Dalam Penitipan", "Penitipan Berakhir"];
-const KATEGORI_OPTIONS = ["Belum Dimanfaatkan", "Pemanfaatan", "Bermasalah Hukum"];
+const STATUS_OPTIONS = ["Dalam Penitipan"];
+const KATEGORI_OPTIONS = ["Belum Dimanfaatkan", "Bermasalah Hukum", "Lain-lain"];
 const ASAL_ASET_OPTIONS = ["Eks BPPN", "Eks PT PPA"];
 
 const RESERVED_COLUMNS = [

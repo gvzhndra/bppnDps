@@ -5,7 +5,7 @@
  *
  * 1) Tab "Aset" (data aset)
  *    Header baris pertama, urutan bebas asal nama sama:
- *      id | kode_aset | lokasi | status | kategori_penitipan | jenis_pemanfaatan | alasan_selesai_penitipan | luas | no_dokumen | jenis_dokumen | catatan | link_folder | geom_type | geometry_json
+ *      id | kode_aset | lokasi | status | kategori_penitipan | keterangan_kategori | luas | no_dokumen | jenis_dokumen | catatan | link_folder | geom_type | geometry_json
  *    Kolom "id", "geom_type", "geometry_json" WAJIB ada (dipakai sistem).
  *
  * 2) Tab "Riwayat" (riwayat dokumen per aset)
@@ -177,7 +177,12 @@ function getAsetData_() {
   const rows = data.slice(1);
   const features = rows
     .filter(function (row) {
-      // Mengambil semua baris yang minimal 1 kolomnya berisi data (tidak peduli kolom mana)
+      // Hanya tampilkan aset yang masih Dalam Penitipan
+      const idxStatus = headers.indexOf('status');
+      if (idxStatus !== -1) {
+        const statusVal = String(row[idxStatus] || '').trim();
+        if (statusVal && statusVal !== 'Dalam Penitipan') return false;
+      }
       return row.some(function(cell) { return cell !== '' && cell !== null && cell !== undefined; });
     })
     .map(function (row, idx) {
