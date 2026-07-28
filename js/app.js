@@ -24,6 +24,14 @@ function getLuasBangunan(props) {
   return 0;
 }
 
+function formatMultilineText(str) {
+  if (str === undefined || str === null || String(str).trim() === "") return "-";
+  let text = escapeHtml(str);
+  text = text.replace(/&lt;br\s*\/?&gt;/gi, '<br>');
+  text = text.replace(/\r?\n/g, '<br>');
+  return text;
+}
+
 function isMobileOrTablet() {
   const ua = navigator.userAgent || navigator.vendor || window.opera;
   const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini|Mobile|Tablet/i.test(ua);
@@ -452,7 +460,7 @@ function renderViewPanel(a){
     <div class="field" style="border-top:1px dashed var(--border);padding-top:10px;margin-top:10px;">
       <label style="font-weight:500;color:var(--text);margin-bottom:8px;display:block;">Data tambahan (kolom custom dari Google Sheets)</label>
       ${extraKeys.map(k => `
-        <div class="view-row"><span class="view-label">${escapeHtml(k)}</span><span class="view-value">${escapeHtml(a.props[k] || '-')}</span></div>
+        <div class="view-row" style="align-items:flex-start;"><span class="view-label">${escapeHtml(k)}</span><span class="view-value" style="text-align:left;white-space:pre-wrap;">${formatMultilineText(a.props[k])}</span></div>
       `).join('')}
     </div>
   ` : '';
@@ -510,7 +518,7 @@ function renderViewPanel(a){
     ${keteranganKategoriRow}
     <div class="view-row"><span class="view-label">No. Dokumen</span><span class="view-value">${escapeHtml(a.props.no_dokumen || "-")}</span></div>
     <div class="view-row"><span class="view-label">Jenis dokumen</span><span class="view-value">${escapeHtml(a.props.jenis_dokumen || "-")}</span></div>
-    <div class="view-row"><span class="view-label">Catatan</span><span class="view-value">${escapeHtml(a.props.catatan || "-")}</span></div>
+    <div class="view-row" style="align-items:flex-start;"><span class="view-label">Catatan</span><span class="view-value" style="text-align:left;white-space:pre-wrap;">${formatMultilineText(a.props.catatan)}</span></div>
     ${linkFolderRow}
     <div class="view-row"><span class="view-label">Geometri</span><span class="view-value">${geomInfo}</span></div>
     ${earthUrl ? `
