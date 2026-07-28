@@ -176,10 +176,16 @@ function getAsetData_() {
   const headers = data[0];
   const rows = data.slice(1);
   const features = rows
-    .filter(function (row) { return row[0] !== '' && row[0] !== null; })
-    .map(function (row) {
+    .filter(function (row) {
+      // Mengambil semua baris yang minimal 1 kolomnya berisi data (tidak peduli kolom mana)
+      return row.some(function(cell) { return cell !== '' && cell !== null && cell !== undefined; });
+    })
+    .map(function (row, idx) {
       const obj = {};
       headers.forEach(function (h, i) { obj[h] = row[i]; });
+      let assetId = (obj.id !== undefined && obj.id !== null && String(obj.id).trim() !== '') 
+        ? String(obj.id) 
+        : ('A_ROW_' + (idx + 1));
       let geometry = null;
       try { geometry = JSON.parse(obj.geometry_json || 'null'); } catch (err) { geometry = null; }
       const props = {};
@@ -187,7 +193,7 @@ function getAsetData_() {
         if (RESERVED_COLUMNS.indexOf(h) === -1) props[h] = obj[h];
       });
       return {
-        id: String(obj.id),
+        id: assetId,
         geomType: obj.geom_type || 'point',
         geometry: geometry,
         props: props

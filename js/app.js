@@ -64,7 +64,11 @@ function computeCentroid(coordsLatLng){
 }
 
 function googleEarthUrl(lat, lng){
-  return `https://earth.google.com/web/@${lat},${lng},0a,1000d,35y,0h,0t,0r`;
+  return `https://earth.google.com/web/search/${lat},+${lng}/@${lat},${lng},0a,800d,35y,0h,0t,0r`;
+}
+
+function googleMapsUrl(lat, lng){
+  return `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
 }
 
 function defaultAssetProps(overrides){
@@ -214,7 +218,16 @@ function visibleFeatures(){
   const s = currentSearch();
   return features.filter(a => {
     if(fStatus !== 'all' && a.props.status !== fStatus) return false;
-    if(fAsal !== 'all' && a.props.asal_aset !== fAsal) return false;
+    if(fAsal !== 'all'){
+      const val = (a.props.asal_aset || '').toLowerCase();
+      if(fAsal === 'Eks BPPN'){
+        if(val && !val.includes('bppn') && val.includes('ppa')) return false;
+      } else if(fAsal === 'Eks PT PPA'){
+        if(!val.includes('ppa')) return false;
+      } else {
+        if(a.props.asal_aset !== fAsal) return false;
+      }
+    }
     if(!matchesSearch(a, s)) return false;
     return true;
   });
@@ -377,6 +390,7 @@ function renderViewPanel(a){
 
   const refCoords = getAssetCoordinates(a);
   const earthUrl = refCoords ? googleEarthUrl(refCoords[0], refCoords[1]) : null;
+  const mapsUrl = refCoords ? googleMapsUrl(refCoords[0], refCoords[1]) : null;
 
   const kategoriRow = (a.props.status === "Dalam Penitipan" && a.props.kategori_penitipan)
     ? `<div class="view-row"><span class="view-label">Kategori</span><span class="view-value">${escapeHtml(a.props.kategori_penitipan)}</span></div>`
@@ -425,7 +439,15 @@ function renderViewPanel(a){
     <div class="view-row"><span class="view-label">Catatan</span><span class="view-value">${escapeHtml(a.props.catatan || "-")}</span></div>
     ${linkFolderRow}
     <div class="view-row"><span class="view-label">Geometri</span><span class="view-value">${geomInfo}</span></div>
-    ${earthUrl ? `<div class="view-row"><span class="view-label">Google Earth</span><span class="view-value"><a href="${earthUrl}" target="_blank" rel="noopener" style="color:#1F78B4;font-weight:600;">🌍 Buka di Google Earth</a></span></div>` : '<div class="view-row"><span class="view-label">Google Earth</span><span class="view-value" style="color:var(--text-mut);">Belum ada koordinat</span></div>'}
+    ${earthUrl ? `
+      <div class="view-row">
+        <span class="view-label">Buka di Peta</span>
+        <span class="view-value" style="display:flex;gap:6px;justify-content:flex-end;flex-wrap:wrap;">
+          <a href="${earthUrl}" target="_blank" rel="noopener" style="color:#1F78B4;font-weight:600;text-decoration:none;background:#F0F4F8;padding:4px 8px;border-radius:4px;font-size:12px;">🌍 Google Earth (Pin)</a>
+          <a href="${mapsUrl}" target="_blank" rel="noopener" style="color:#EA4335;font-weight:600;text-decoration:none;background:#FDF2F2;padding:4px 8px;border-radius:4px;font-size:12px;">📍 Google Maps (Pin)</a>
+        </span>
+      </div>
+    ` : '<div class="view-row"><span class="view-label">Buka di Peta</span><span class="view-value" style="color:var(--text-mut);">Belum ada koordinat</span></div>'}
     ${extraSection}
     <div class="field" style="border-top:1px dashed var(--border);padding-top:10px;margin-top:10px;">
       <label style="font-weight:500;color:var(--text);margin-bottom:8px;display:block;">Foto lapangan & Geotagging</label>
