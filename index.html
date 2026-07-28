@@ -38,19 +38,18 @@
     <option value="Eks PT PPA">Eks PT PPA</option>
   </select>
   <select id="filterStatus">
-    <option value="all">Semua status</option>
-    <option value="Dalam Penitipan">Dalam Penitipan</option>
-    <option value="Penitipan Berakhir">Penitipan Berakhir</option>
+    <option value="all">Semua kategori</option>
+    <option value="Belum Dimanfaatkan">Belum Dimanfaatkan</option>
+    <option value="Bermasalah Hukum">Bermasalah Hukum</option>
+    <option value="Lain-lain">Lain-lain</option>
   </select>
   <!-- <button id="btnDraw" disabled>Gambar poligon baru</button> -->
 </div>
 
 <div class="legend">
-  <span><span class="dot" style="background:#4C8C3F"></span>Dalam Penitipan</span>
-  <span><span class="dot" style="background:#B8790F"></span>Penitipan Berakhir</span>
-  <span><span class="dot" style="background:#94A3B8"></span>Kategori: Belum Dimanfaatkan</span>
-  <span><span class="dot" style="background:#1F78B4"></span>Kategori: Pemanfaatan</span>
-  <span><span class="dot" style="background:#B23A3A"></span>Kategori: Bermasalah Hukum</span>
+  <span><span class="dot" style="background:#94A3B8"></span>Belum Dimanfaatkan</span>
+  <span><span class="dot" style="background:#B23A3A"></span>Bermasalah Hukum</span>
+  <span><span class="dot" style="background:#7C3AED"></span>Lain-lain</span>
 </div>
 
 <div class="stats">
@@ -61,10 +60,9 @@
 </div>
 
 <div class="stats-secondary">
-  <div class="stat-sub" style="border-left-color:#4C8C3F;"><span>Dalam Penitipan</span><strong id="statDalamPenitipan">0</strong></div>
-  <div class="stat-sub" style="border-left-color:#94A3B8;"><span>↳ Belum Dimanfaatkan</span><strong id="statBelumDimanfaatkan">0</strong></div>
-  <div class="stat-sub" style="border-left-color:#B23A3A;"><span>↳ Bermasalah Hukum</span><strong id="statBermasalah">0</strong></div>
-  <div class="stat-sub" style="border-left-color:#7C3AED;"><span>↳ Lain-lain</span><strong id="statBerakhir">0</strong></div>
+  <div class="stat-sub" style="border-left-color:#94A3B8;"><span>Belum Dimanfaatkan</span><strong id="statBelumDimanfaatkan">0</strong></div>
+  <div class="stat-sub" style="border-left-color:#B23A3A;"><span>Bermasalah Hukum</span><strong id="statBermasalah">0</strong></div>
+  <div class="stat-sub" style="border-left-color:#7C3AED;"><span>Lain-lain</span><strong id="statBerakhir">0</strong></div>
 </div>
 
 <div class="main">

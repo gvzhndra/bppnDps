@@ -255,7 +255,7 @@ function visibleFeatures(){
   const fAsal = currentFilterAsal();
   const s = currentSearch();
   return features.filter(a => {
-    if(fStatus !== 'all' && a.props.status !== fStatus) return false;
+    if(fStatus !== 'all' && a.props.kategori_penitipan !== fStatus) return false;
     if(fAsal !== 'all'){
       const val = (a.props.asal_aset || '').toLowerCase();
       if(fAsal === 'Eks BPPN'){
@@ -330,16 +330,14 @@ function renderAll(){
     return !isValidPolygonCoords(a.coords);
   }).length;
   const batasBelumDitemukan = vis.filter(a => a.geomType !== "polygon").length;
-  const dalamPenitipan = vis.filter(a => a.props.status === "Dalam Penitipan");
-  const belumDimanfaatkanCount = dalamPenitipan.filter(a => !a.props.kategori_penitipan || a.props.kategori_penitipan === "Belum Dimanfaatkan").length;
-  const bermasalahCount = dalamPenitipan.filter(a => a.props.kategori_penitipan === "Bermasalah Hukum").length;
-  const lainLainCount = dalamPenitipan.filter(a => a.props.kategori_penitipan === "Lain-lain").length;
+  const belumDimanfaatkanCount = vis.filter(a => !a.props.kategori_penitipan || a.props.kategori_penitipan === "Belum Dimanfaatkan").length;
+  const bermasalahCount = vis.filter(a => a.props.kategori_penitipan === "Bermasalah Hukum").length;
+  const lainLainCount = vis.filter(a => a.props.kategori_penitipan === "Lain-lain").length;
 
   document.getElementById('statTotal').textContent = vis.length;
   document.getElementById('statLuas').textContent = vis.reduce((s,a)=>s+Number(a.props.luas || 0),0).toLocaleString('id-ID');
   document.getElementById('statTitik').textContent = belumPunyaKoordinat;
   document.getElementById('statPolygon').textContent = batasBelumDitemukan;
-  document.getElementById('statDalamPenitipan').textContent = dalamPenitipan.length;
   document.getElementById('statBelumDimanfaatkan').textContent = belumDimanfaatkanCount;
   document.getElementById('statBermasalah').textContent = bermasalahCount;
   document.getElementById('statBerakhir').textContent = lainLainCount;
