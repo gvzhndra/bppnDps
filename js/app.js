@@ -40,12 +40,16 @@ function isMobileOrTablet() {
 }
 
 function geometryToInternal(geomType, geometry){
-  if(!geometry) return geomType === "point" ? [-8.65, 115.22] : [];
+  if(!geometry) return geomType === "point" ? [0, 0] : [];
   if(geomType === "point"){
     if(geometry.coordinates && geometry.coordinates.length >= 2){
-      return [Number(geometry.coordinates[1]), Number(geometry.coordinates[0])];
+      const lng = Number(geometry.coordinates[0]);
+      const lat = Number(geometry.coordinates[1]);
+      if(!isNaN(lat) && !isNaN(lng) && !(lat === 0 && lng === 0)){
+        return [lat, lng];
+      }
     }
-    return [-8.65, 115.22];
+    return [0, 0];
   }
   if(geometry.type === "Polygon" && geometry.coordinates && geometry.coordinates[0]){
     return geometry.coordinates[0].map(c => [Number(c[1]), Number(c[0])]);
@@ -318,12 +322,18 @@ function renderAll(){
     const color = getPrimaryColor(a.props);
     let layer;
     if(a.geomType === "point"){
-      layer = L.circleMarker(a.point, {radius:9, color:color, weight:2, fillColor:color, fillOpacity:0.7}).addTo(map);
+      if(isValidPoint(a.point)){
+        layer = L.circleMarker(a.point, {radius:9, color:color, weight:2, fillColor:color, fillOpacity:0.7}).addTo(map);
+        layer.on('click', () => selectAsset(a.id));
+        leafletLayers[a.id] = layer;
+      }
     } else {
-      layer = L.polygon(a.coords, {color:color, weight:2, fillColor:color, fillOpacity:0.35}).addTo(map);
+      if(isValidPolygonCoords(a.coords)){
+        layer = L.polygon(a.coords, {color:color, weight:2, fillColor:color, fillOpacity:0.35}).addTo(map);
+        layer.on('click', () => selectAsset(a.id));
+        leafletLayers[a.id] = layer;
+      }
     }
-    layer.on('click', () => selectAsset(a.id));
-    leafletLayers[a.id] = layer;
   });
 
   const tbody = document.getElementById('tableBody');
@@ -947,12 +957,22 @@ function renderEditPanel(a){
     a.props.link_folder = document.getElementById('f-link_folder').value;
     document.querySelectorAll('.f-extra').forEach(inp => { a.props[inp.dataset.key] = inp.value; });
     if(a.geomType === "point"){
-      const latRaw = document.getElementById('f-lat').value.trim();
-      const lngRaw = document.getElementById('f-lng').value.trim();
-      if(latRaw !== '' && lngRaw !== ''){
-        const lat = Number(latRaw);
-        const lng = Number(lngRaw);
-        if(!isNaN(lat) && !isNaN(lng)) a.point = [lat, lng];
+      const latInput = document.getElementById('f-lat');
+      const lngInput = document.getElementById('f-lng');
+      if(latInput && lngInput){
+        const latRaw = latInput.value.trim();
+        const lngRaw = lngInput.value.trim();
+        if(latRaw !== '' && lngRaw !== ''){
+          const lat = Number(latRaw);
+          const lng = Number(lngRaw);
+          if(!isNaN(lat) && !isNaN(lng)){
+            a.point = [lat, lng];
+          } else {
+            a.point = [0, 0];
+          }
+        } else {
+          a.point = [0, 0];
+        }
       }
     }
     renderAll();
