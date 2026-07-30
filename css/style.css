@@ -101,6 +101,29 @@
   .pagination-buttons button{padding:6px 12px;}
   .pagination-buttons button:disabled{opacity:0.4;cursor:not-allowed;}
 
+  /* ---- Navigasi Tab Tabel & Clickable Cards ---- */
+  .table-tabs{display:flex;gap:8px;border-bottom:2px solid var(--border);padding-bottom:2px;}
+  .tab-btn{background:none;border:none;font-size:14px;font-weight:600;color:var(--text-mut);padding:8px 16px;cursor:pointer;border-bottom:3px solid transparent;transition:all 0.2s;border-radius:0;}
+  .tab-btn:hover{color:var(--navy);background:none;}
+  .tab-btn.active{color:var(--navy);border-bottom-color:var(--navy);}
+
+  .clickable-stat{cursor:pointer;transition:transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;}
+  .clickable-stat:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.08);border-color:var(--navy);}
+
+  /* ---- Baris & Akordion Kluster ---- */
+  .cluster-card{background:#fff;border:1px solid var(--border);border-radius:8px;margin-bottom:12px;overflow:hidden;transition:border-color 0.2s;}
+  .cluster-card:hover{border-color:#cbd5e1;}
+  .cluster-header{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:#FAFBFD;cursor:pointer;flex-wrap:wrap;gap:10px;user-select:none;}
+  .cluster-header:hover{background:#F1F5F9;}
+  .cluster-title{display:flex;align-items:center;gap:10px;font-weight:600;font-size:14px;color:var(--navy);}
+  .cluster-icon{font-size:12px;transition:transform 0.2s;display:inline-block;color:var(--text-mut);}
+  .cluster-card.open .cluster-icon{transform:rotate(90deg);}
+  .cluster-metrics{display:flex;gap:16px;align-items:center;flex-wrap:wrap;font-size:12px;color:var(--text-mut);}
+  .cluster-metrics strong{color:var(--text);}
+  .cluster-details-wrap{display:none;padding:12px 16px;border-top:1px solid var(--border);background:#fff;}
+  .cluster-card.open .cluster-details-wrap{display:block;}
+  .cluster-badge{background:#E2E8F0;color:#334155;font-size:11px;padding:2px 8px;border-radius:12px;font-weight:500;}
+
   /* ================================================================
      MOBILE (layar sempit / portrait HP) -- perbaikan layout terarah,
      bukan redesign total. Fokus: elemen yang paling gampang berantakan.
@@ -149,3 +172,4 @@
 
     .modal{width:92vw;}
   }
+

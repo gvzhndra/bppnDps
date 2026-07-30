@@ -150,6 +150,7 @@ function defaultAssetProps(overrides){
     kode_aset: "",
     asal_aset: "Eks BPPN",
     lokasi: "",
+    kluster: "",
     status: "Dalam Penitipan",
     kategori_penitipan: "Belum Dimanfaatkan",
     keterangan_kategori: "",
@@ -280,30 +281,215 @@ function matchesSearch(a, s){
   return (a.props.kode_aset||"").toLowerCase().includes(s)
     || (a.props.asal_aset||"").toLowerCase().includes(s)
     || (a.props.lokasi||"").toLowerCase().includes(s)
+    || (a.props.kluster||"").toLowerCase().includes(s)
     || (a.props.status||"").toLowerCase().includes(s)
     || (a.props.kategori_penitipan||"").toLowerCase().includes(s)
     || (a.props.jenis_pemanfaatan||"").toLowerCase().includes(s)
     || (a.props.jenis_dokumen||"").toLowerCase().includes(s);
 }
 
+let currentTab = 'kluster'; // Tab default: Kluster Aset
+let specialFilter = null; // null, 'no_coord', atau 'no_poly'
+
+function smoothScrollToTable(){
+  const el = document.getElementById('tableWrap');
+  if(el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function switchTab(tabName){
+  currentTab = tabName;
+  const tabKluster = document.getElementById('tabKluster');
+  const tabSemua = document.getElementById('tabSemua');
+  const viewKluster = document.getElementById('viewKluster');
+  const viewSemua = document.getElementById('viewSemua');
+
+  if(tabName === 'kluster'){
+    if(tabKluster) tabKluster.classList.add('active');
+    if(tabSemua) tabSemua.classList.remove('active');
+    if(viewKluster) viewKluster.style.display = 'block';
+    if(viewSemua) viewSemua.style.display = 'none';
+  } else {
+    if(tabSemua) tabSemua.classList.add('active');
+    if(tabKluster) tabKluster.classList.remove('active');
+    if(viewSemua) viewSemua.style.display = 'block';
+    if(viewKluster) viewKluster.style.display = 'none';
+  }
+}
+
 const filterStatusEl = document.getElementById('filterStatus');
-if(filterStatusEl) filterStatusEl.addEventListener('change', () => { currentPage = 1; renderAll(); });
+if(filterStatusEl) filterStatusEl.addEventListener('change', () => { specialFilter = null; currentPage = 1; renderAll(); });
 const filterAsalEl = document.getElementById('filterAsal');
-if(filterAsalEl) filterAsalEl.addEventListener('change', () => { currentPage = 1; renderAll(); });
+if(filterAsalEl) filterAsalEl.addEventListener('change', () => { specialFilter = null; currentPage = 1; renderAll(); });
 const searchEl = document.getElementById('search');
-if(searchEl) searchEl.addEventListener('input', () => { currentPage = 1; renderAll(); });
+if(searchEl) searchEl.addEventListener('input', () => { specialFilter = null; currentPage = 1; renderAll(); });
 
 function visibleFeatures(){
   const fStatus = currentFilterStatus();
   const fAsal = currentFilterAsal();
   const s = currentSearch();
   return features.filter(a => {
+    if(specialFilter === 'no_coord'){
+      if(a.geomType === "point" && isValidPoint(a.point)) return false;
+      if(a.geomType === "polygon" && isValidPolygonCoords(a.coords)) return false;
+    } else if(specialFilter === 'no_poly'){
+      if(a.geomType === "polygon" && isValidPolygonCoords(a.coords)) return false;
+    }
     if(fStatus !== 'all' && a.props.kategori_penitipan !== fStatus) return false;
     if(fAsal !== 'all'){
       if(getNormalizedAsalAset(a.props.asal_aset) !== fAsal) return false;
     }
     if(!matchesSearch(a, s)) return false;
     return true;
+  });
+}
+
+function getUniqueClusters(){
+  const set = new Set();
+  features.forEach(a => {
+    const k = (a.props && a.props.kluster) ? String(a.props.kluster).trim() : '';
+    if(k) set.add(k);
+  });
+  return Array.from(set).sort();
+}
+
+function groupAssetsByCluster(assetList){
+  const groups = {};
+  assetList.forEach(a => {
+    const name = (a.props && a.props.kluster) ? String(a.props.kluster).trim() : 'Tanpa Kluster';
+    if(!groups[name]) groups[name] = [];
+    groups[name].push(a);
+  });
+
+  const sortedKeys = Object.keys(groups).sort((x, y) => {
+    if(x === 'Tanpa Kluster') return 1;
+    if(y === 'Tanpa Kluster') return -1;
+    return x.localeCompare(y);
+  });
+
+  const sortedGroups = {};
+  sortedKeys.forEach(k => { sortedGroups[k] = groups[k]; });
+  return sortedGroups;
+}
+
+function renderClusterTable(vis){
+  const container = document.getElementById('clusterContainer');
+  if(!container) return;
+
+  const groups = groupAssetsByCluster(vis);
+  const clusterKeys = Object.keys(groups);
+
+  if(clusterKeys.length === 0){
+    container.innerHTML = '<p class="small-note" style="margin:12px 0;">Tidak ada aset yang sesuai dengan kriteria filter.</p>';
+    return;
+  }
+
+  let html = '';
+  clusterKeys.forEach((name, idx) => {
+    const assets = groups[name];
+    const totalCount = assets.length;
+    const luasTanah = assets.reduce((s, a) => s + getLuasTanah(a.props), 0);
+    const luasBangunan = assets.reduce((s, a) => s + getLuasBangunan(a.props), 0);
+
+    const sudah = assets.filter(a => a.props.kategori_penitipan === 'Sudah Dimanfaatkan' || a.props.kategori_penitipan === 'Dimanfaatkan').length;
+    const belum = assets.filter(a => a.props.kategori_penitipan === 'Belum Dimanfaatkan').length;
+    const masalah = assets.filter(a => a.props.kategori_penitipan === 'Bermasalah Hukum').length;
+    const lain = assets.filter(a => a.props.kategori_penitipan === 'Lain-lain').length;
+
+    html += `
+      <div class="cluster-card ${idx === 0 ? 'open' : ''}" data-cluster-name="${escapeHtml(name)}">
+        <div class="cluster-header">
+          <div class="cluster-title">
+            <span class="cluster-icon">▶</span>
+            <span>${escapeHtml(name)}</span>
+            <span class="cluster-badge">${totalCount} aset</span>
+          </div>
+          <div class="cluster-metrics">
+            <span>Tanah: <strong>${luasTanah.toLocaleString('id-ID')} m²</strong></span>
+            <span>Bangunan: <strong>${luasBangunan.toLocaleString('id-ID')} m²</strong></span>
+            <div class="badge-group">
+              ${sudah > 0 ? `<span class="badge" style="background:#1D9E75;">${sudah} dimanfaatkan</span>` : ''}
+              ${belum > 0 ? `<span class="badge" style="background:#94A3B8;">${belum} belum</span>` : ''}
+              ${masalah > 0 ? `<span class="badge" style="background:#B23A3A;">${masalah} masalah</span>` : ''}
+              ${lain > 0 ? `<span class="badge" style="background:#7C3AED;">${lain} lain</span>` : ''}
+            </div>
+            <button class="primary btnFocusCluster" data-cluster="${escapeHtml(name)}" style="padding:4px 10px;font-size:12px;">📍 Fokus di Peta</button>
+          </div>
+        </div>
+        <div class="cluster-details-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Kode Aset</th>
+                <th>Asal Aset</th>
+                <th>Lokasi</th>
+                <th>Geometri</th>
+                <th>Luas Tanah (m²)</th>
+                <th>Luas Bangunan (m²)</th>
+                <th>Status</th>
+                <th>No. Dokumen</th>
+                <th>Aksi</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${assets.map(a => `
+                <tr class="rowClusterAsset" data-id="${a.id}">
+                  <td>${escapeHtml(a.props.kode_aset || "-")}</td>
+                  <td><span class="badge" style="background:#1B3A5C;">${escapeHtml(getNormalizedAsalAset(a.props.asal_aset))}</span></td>
+                  <td>${escapeHtml(a.props.lokasi || "-")}</td>
+                  <td>${a.geomType === "point" ? "Titik" : "Poligon"}</td>
+                  <td>${getLuasTanah(a.props).toLocaleString('id-ID')}</td>
+                  <td>${getLuasBangunan(a.props).toLocaleString('id-ID')}</td>
+                  <td><div class="badge-group">${statusBadgesHtml(a.props)}</div></td>
+                  <td>${escapeHtml(a.props.no_dokumen || "-")}</td>
+                  <td><button class="btnViewRow" data-id="${a.id}" style="padding:4px 10px;">Lihat</button></td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    `;
+  });
+
+  container.innerHTML = html;
+
+  container.querySelectorAll('.cluster-header').forEach(header => {
+    header.addEventListener('click', (e) => {
+      if(e.target.closest('.btnFocusCluster')) return;
+      const card = header.closest('.cluster-card');
+      card.classList.toggle('open');
+    });
+  });
+
+  container.querySelectorAll('.btnFocusCluster').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const clusterName = btn.dataset.cluster;
+      const clusterAssets = groups[clusterName] || [];
+      const bounds = [];
+      clusterAssets.forEach(a => {
+        if(a.geomType === 'point' && isValidPoint(a.point)){
+          bounds.push(a.point);
+        } else if(a.geomType === 'polygon' && isValidPolygonCoords(a.coords)){
+          a.coords.forEach(c => bounds.push(c));
+        }
+      });
+      if(bounds.length > 0){
+        map.fitBounds(L.latLngBounds(bounds), {padding:[50,50], maxZoom:16});
+      } else {
+        alert('Tidak ada geometri valid untuk aset dalam kluster ini.');
+      }
+    });
+  });
+
+  container.querySelectorAll('.rowClusterAsset').forEach(row => {
+    row.addEventListener('click', () => selectAsset(row.dataset.id));
+  });
+  container.querySelectorAll('.btnViewRow').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      selectAsset(btn.dataset.id);
+    });
   });
 }
 
@@ -354,6 +540,7 @@ function renderAll(){
     tr.innerHTML = `<td>${escapeHtml(a.props.kode_aset || "-")}</td>
       <td><span class="badge" style="background:#1B3A5C;">${escapeHtml(getNormalizedAsalAset(a.props.asal_aset))}</span></td>
       <td>${escapeHtml(a.props.lokasi || "-")}</td>
+      <td><span class="badge" style="background:#475569;">${escapeHtml(a.props.kluster || "Tanpa Kluster")}</span></td>
       <td>${geomLabel}</td>
       <td>${luasTanahVal.toLocaleString('id-ID')}</td>
       <td>${luasBangunanVal.toLocaleString('id-ID')}</td>
@@ -370,6 +557,7 @@ function renderAll(){
     btn.addEventListener('click', (e) => { e.stopPropagation(); selectAsset(btn.dataset.id); });
   });
   renderPagination(vis.length, totalPages);
+  renderClusterTable(vis);
 
   const belumPunyaKoordinat = vis.filter(a => {
     if(a.geomType === "point") return !isValidPoint(a.point);
@@ -385,6 +573,8 @@ function renderAll(){
   const totalLuasBangunan = vis.reduce((s,a) => s + getLuasBangunan(a.props), 0);
 
   document.getElementById('statTotal').textContent = vis.length;
+  const statTotalKlusterEl = document.getElementById('statTotalKluster');
+  if(statTotalKlusterEl) statTotalKlusterEl.textContent = getUniqueClusters().length;
   const statLuasTanahEl = document.getElementById('statLuasTanah');
   const statLuasBangunanEl = document.getElementById('statLuasBangunan');
   const statLuasEl = document.getElementById('statLuas');
@@ -521,6 +711,7 @@ function renderViewPanel(a){
     <div class="view-row"><span class="view-label">Kode aset</span><span class="view-value">${escapeHtml(a.props.kode_aset || "-")}</span></div>
     <div class="view-row"><span class="view-label">Asal aset</span><span class="view-value"><span class="badge" style="background:#1B3A5C;">${escapeHtml(getNormalizedAsalAset(a.props.asal_aset))}</span></span></div>
     <div class="view-row"><span class="view-label">Lokasi</span><span class="view-value">${escapeHtml(a.props.lokasi || "-")}</span></div>
+    <div class="view-row"><span class="view-label">Kluster</span><span class="view-value">${escapeHtml(a.props.kluster || "Tanpa Kluster")}</span></div>
     <div class="view-row"><span class="view-label">Luas tanah (m²)</span><span class="view-value">${getLuasTanah(a.props).toLocaleString('id-ID')}</span></div>
     <div class="view-row"><span class="view-label">Luas bangunan (m²)</span><span class="view-value">${getLuasBangunan(a.props).toLocaleString('id-ID')}</span></div>
     <div class="view-row"><span class="view-label">Status</span><div class="badge-group">${statusBadgesHtml(a.props)}</div></div>
@@ -544,7 +735,7 @@ function renderViewPanel(a){
     <div class="field" style="border-top:1px dashed var(--border);padding-top:10px;margin-top:10px;">
       <label style="font-weight:500;color:var(--text);margin-bottom:8px;display:block;">Foto lapangan & Geotagging</label>
       <div id="fotoGallery" class="foto-gallery small-note">Memuat foto...</div>
-      <input type="file" accept="image/*" capture="environment" id="foto-input" style="display:none;">
+      <input type="file" accept="image/*" id="foto-input" style="display:none;">
       <div class="actions-row">
         <button class="primary" id="btnTambahFoto" style="font-size:12px;">📷 Tambah foto lapangan</button>
       </div>
@@ -559,17 +750,9 @@ function renderViewPanel(a){
 
   const btnFoto = document.getElementById('btnTambahFoto');
   if (btnFoto) {
-    if (!isMobileOrTablet()) {
-      btnFoto.disabled = true;
-      btnFoto.style.opacity = '0.55';
-      btnFoto.style.cursor = 'not-allowed';
-      btnFoto.title = 'Fitur ini khusus untuk smartphone/tablet (HP dengan kamera & GPS).';
-      btnFoto.innerHTML = '📷 Tambah foto (khusus HP/Tablet)';
-    } else {
-      btnFoto.addEventListener('click', () => {
-        document.getElementById('foto-input').click();
-      });
-    }
+    btnFoto.addEventListener('click', () => {
+      document.getElementById('foto-input').click();
+    });
   }
   document.getElementById('foto-input').addEventListener('change', async (e) => {
     const file = e.target.files && e.target.files[0];
@@ -666,7 +849,7 @@ function compressImageToBase64(file, maxDim = 1600){
         canvas.width = w; canvas.height = h;
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, w, h);
-        resolve(canvas.toDataURL('image/jpeg', 0.82));
+        resolve(canvas.toDataURL('image/jpeg', 0.80));
       };
       img.onerror = reject;
       img.src = e.target.result;
@@ -886,6 +1069,12 @@ function renderEditPanel(a){
       </select>
     </div>
     <div class="field"><label>Lokasi</label><input type="text" id="f-lokasi" value="${escapeHtml(a.props.lokasi || "")}"></div>
+    <div class="field"><label>Kluster Aset</label>
+      <input type="text" id="f-kluster" value="${escapeHtml(a.props.kluster || "")}" list="kluster-list" placeholder="mis. Kluster Kesiman, Kluster Sanur, dll.">
+      <datalist id="kluster-list">
+        ${getUniqueClusters().map(c => `<option value="${escapeHtml(c)}">`).join('')}
+      </datalist>
+    </div>
     <div class="row2">
       <div class="field"><label>Luas tanah (m²)</label><input type="number" id="f-luas_tanah" value="${getLuasTanah(a.props)}"></div>
       <div class="field"><label>Luas bangunan (m²)</label><input type="number" id="f-luas_bangunan" value="${getLuasBangunan(a.props)}"></div>
@@ -943,6 +1132,7 @@ function renderEditPanel(a){
     a.props.kode_aset = document.getElementById('f-kode_aset').value;
     a.props.asal_aset = document.getElementById('f-asal_aset').value;
     a.props.lokasi = document.getElementById('f-lokasi').value;
+    a.props.kluster = document.getElementById('f-kluster').value.trim();
     a.props.luas_tanah = Number(document.getElementById('f-luas_tanah').value) || 0;
     a.props.luas_bangunan = Number(document.getElementById('f-luas_bangunan').value) || 0;
     a.props.luas = a.props.luas_tanah;
@@ -1122,8 +1312,40 @@ if(btnRefresh){
   });
 }
 
+// Event listeners for Table Tabs
+const tabKlusterEl = document.getElementById('tabKluster');
+if(tabKlusterEl) tabKlusterEl.addEventListener('click', () => switchTab('kluster'));
+const tabSemuaEl = document.getElementById('tabSemua');
+if(tabSemuaEl) tabSemuaEl.addEventListener('click', () => switchTab('semua'));
+
+// Event listeners for Interactive Stat Cards
+const cardTotalAsetEl = document.getElementById('cardTotalAset');
+if(cardTotalAsetEl) cardTotalAsetEl.addEventListener('click', () => { specialFilter = null; const sel = document.getElementById('filterStatus'); if(sel) sel.value = 'all'; switchTab('semua'); renderAll(); smoothScrollToTable(); });
+
+const cardTotalKlusterEl = document.getElementById('cardTotalKluster');
+if(cardTotalKlusterEl) cardTotalKlusterEl.addEventListener('click', () => { switchTab('kluster'); smoothScrollToTable(); });
+
+const cardSudahEl = document.getElementById('cardSudahDimanfaatkan');
+if(cardSudahEl) cardSudahEl.addEventListener('click', () => { specialFilter = null; const sel = document.getElementById('filterStatus'); if(sel) sel.value = 'Sudah Dimanfaatkan'; switchTab('semua'); renderAll(); smoothScrollToTable(); });
+
+const cardBelumEl = document.getElementById('cardBelumDimanfaatkan');
+if(cardBelumEl) cardBelumEl.addEventListener('click', () => { specialFilter = null; const sel = document.getElementById('filterStatus'); if(sel) sel.value = 'Belum Dimanfaatkan'; switchTab('semua'); renderAll(); smoothScrollToTable(); });
+
+const cardBermasalahEl = document.getElementById('cardBermasalah');
+if(cardBermasalahEl) cardBermasalahEl.addEventListener('click', () => { specialFilter = null; const sel = document.getElementById('filterStatus'); if(sel) sel.value = 'Bermasalah Hukum'; switchTab('semua'); renderAll(); smoothScrollToTable(); });
+
+const cardBerakhirEl = document.getElementById('cardBerakhir');
+if(cardBerakhirEl) cardBerakhirEl.addEventListener('click', () => { specialFilter = null; const sel = document.getElementById('filterStatus'); if(sel) sel.value = 'Lain-lain'; switchTab('semua'); renderAll(); smoothScrollToTable(); });
+
+const cardBelumCoordEl = document.getElementById('cardBelumKoordinat');
+if(cardBelumCoordEl) cardBelumCoordEl.addEventListener('click', () => { specialFilter = 'no_coord'; switchTab('semua'); renderAll(); smoothScrollToTable(); });
+
+const cardBatasBelumEl = document.getElementById('cardBatasBelumDitemukan');
+if(cardBatasBelumEl) cardBatasBelumEl.addEventListener('click', () => { specialFilter = 'no_poly'; switchTab('semua'); renderAll(); smoothScrollToTable(); });
+
 // Inisialisasi awal aplikasi
 renderUserBadge();
 applyRoleUI();
+switchTab('kluster');
 renderAll();
 loadFromServer();

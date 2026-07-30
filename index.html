@@ -50,18 +50,19 @@
 
 
 <div class="stats">
-  <div class="stat"><span>Total aset</span><strong id="statTotal">0</strong></div>
+  <div class="stat clickable-stat" id="cardTotalAset" title="Klik untuk lihat semua aset"><span>Total aset</span><strong id="statTotal">0</strong></div>
+  <div class="stat clickable-stat" id="cardTotalKluster" title="Klik untuk lihat tab Kluster"><span>Total Kluster</span><strong id="statTotalKluster">0</strong></div>
   <div class="stat"><span>Luas Tanah (m²)</span><strong id="statLuasTanah">0</strong></div>
   <div class="stat"><span>Luas Bangunan (m²)</span><strong id="statLuasBangunan">0</strong></div>
-  <div class="stat"><span>Belum Punya Koordinat</span><strong id="statTitik">0</strong></div>
-  <div class="stat"><span>Batas Belum Ditemukan</span><strong id="statPolygon">0</strong></div>
+  <div class="stat clickable-stat" id="cardBelumKoordinat" title="Klik untuk filter aset belum berkoordinat"><span>Belum Punya Koordinat</span><strong id="statTitik">0</strong></div>
+  <div class="stat clickable-stat" id="cardBatasBelumDitemukan" title="Klik untuk filter batas belum ditemukan"><span>Batas Belum Ditemukan</span><strong id="statPolygon">0</strong></div>
 </div>
 
 <div class="stats-secondary">
-  <div class="stat-sub" style="border-left-color:#1D9E75;"><span>Sudah Dimanfaatkan</span><strong id="statSudahDimanfaatkan">0</strong></div>
-  <div class="stat-sub" style="border-left-color:#94A3B8;"><span>Belum Dimanfaatkan</span><strong id="statBelumDimanfaatkan">0</strong></div>
-  <div class="stat-sub" style="border-left-color:#B23A3A;"><span>Bermasalah Hukum</span><strong id="statBermasalah">0</strong></div>
-  <div class="stat-sub" style="border-left-color:#7C3AED;"><span>Lain-lain</span><strong id="statBerakhir">0</strong></div>
+  <div class="stat-sub clickable-stat" id="cardSudahDimanfaatkan" style="border-left-color:#1D9E75;" title="Klik untuk filter Sudah Dimanfaatkan"><span>Sudah Dimanfaatkan</span><strong id="statSudahDimanfaatkan">0</strong></div>
+  <div class="stat-sub clickable-stat" id="cardBelumDimanfaatkan" style="border-left-color:#94A3B8;" title="Klik untuk filter Belum Dimanfaatkan"><span>Belum Dimanfaatkan</span><strong id="statBelumDimanfaatkan">0</strong></div>
+  <div class="stat-sub clickable-stat" id="cardBermasalah" style="border-left-color:#B23A3A;" title="Klik untuk filter Bermasalah Hukum"><span>Bermasalah Hukum</span><strong id="statBermasalah">0</strong></div>
+  <div class="stat-sub clickable-stat" id="cardBerakhir" style="border-left-color:#7C3AED;" title="Klik untuk filter Lain-lain"><span>Lain-lain</span><strong id="statBerakhir">0</strong></div>
 </div>
 
 <div class="main">
@@ -74,30 +75,43 @@
   </div>
 </div>
 
-<div class="table-wrap">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-    <h3 style="margin:0;">Daftar aset</h3>
+<div class="table-wrap" id="tableWrap">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+    <div class="table-tabs">
+      <button id="tabKluster" class="tab-btn active">Kluster Aset</button>
+      <button id="tabSemua" class="tab-btn">Semua Aset</button>
+    </div>
     <button id="btnAddPoint" class="primary">+ Tambah aset</button>
   </div>
-  <p class="small-note" id="hintTambahAset" style="margin-top:-4px;">Belum ada GeoJSON? Tambah aset sebagai titik dulu, isi koordinatnya manual, lalu tempel GeoJSON poligon belakangan lewat panel edit begitu hasil trace-nya siap.</p>
-  <table>
-    <thead>
-      <tr>
-        <th>Kode Aset</th>
-        <th>Asal Aset</th>
-        <th>Lokasi</th>
-        <th>Geometri</th>
-        <th>Luas Tanah (m²)</th>
-        <th>Luas Bangunan (m²)</th>
-        <th>Status</th>
-        <th>No. Dokumen</th>
-        <th>Jenis Dokumen</th>
-        <th>Aksi</th>
-      </tr>
-    </thead>
-    <tbody id="tableBody"></tbody>
-  </table>
-  <div id="pagination" class="pagination"></div>
+  <p class="small-note" id="hintTambahAset" style="margin-top:-6px;margin-bottom:14px;">Belum ada GeoJSON? Tambah aset sebagai titik dulu, isi koordinatnya manual, lalu tempel GeoJSON poligon belakangan lewat panel edit begitu hasil trace-nya siap.</p>
+
+  <!-- View 1: Tab Kluster Aset -->
+  <div id="viewKluster">
+    <div id="clusterContainer"></div>
+  </div>
+
+  <!-- View 2: Tab Semua Aset -->
+  <div id="viewSemua" style="display:none;">
+    <table>
+      <thead>
+        <tr>
+          <th>Kode Aset</th>
+          <th>Asal Aset</th>
+          <th>Lokasi</th>
+          <th>Kluster</th>
+          <th>Geometri</th>
+          <th>Luas Tanah (m²)</th>
+          <th>Luas Bangunan (m²)</th>
+          <th>Status</th>
+          <th>No. Dokumen</th>
+          <th>Jenis Dokumen</th>
+          <th>Aksi</th>
+        </tr>
+      </thead>
+      <tbody id="tableBody"></tbody>
+    </table>
+    <div id="pagination" class="pagination"></div>
+  </div>
 </div>
 
 <div class="loading-overlay" id="loadingOverlay">
