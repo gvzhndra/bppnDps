@@ -357,9 +357,32 @@ function upsertAsset_(asset) {
     }
   }
 
+  const idxId = headers.indexOf('id');
+  const idxKode = headers.map(function(h){ return normalizeKey_(h); }).indexOf('kode_aset');
+
   function findRowIndexById(id) {
+    // 1. Cek berdasarkan kolom 'id' jika ada
+    if (idxId !== -1) {
+      for (let i = 1; i < data.length; i++) {
+        if (String(data[i][idxId]).trim() === String(id).trim()) return i + 1;
+      }
+    }
+    // 2. Cek berdasarkan kode_aset jika asset.props.kode_aset ada
+    if (asset.props && asset.props.kode_aset && idxKode !== -1) {
+      for (let i = 1; i < data.length; i++) {
+        if (String(data[i][idxKode]).trim() === String(asset.props.kode_aset).trim()) return i + 1;
+      }
+    }
+    // 3. Cek jika ID berformat 'A_ROW_X'
+    if (String(id).indexOf('A_ROW_') === 0) {
+      const rowNum = parseInt(String(id).replace('A_ROW_', ''), 10);
+      if (!isNaN(rowNum) && rowNum >= 1 && rowNum < data.length) {
+        return rowNum + 1;
+      }
+    }
+    // 4. Default: cek kolom pertama (0)
     for (let i = 1; i < data.length; i++) {
-      if (String(data[i][0]) === String(id)) return i + 1;
+      if (String(data[i][0]).trim() === String(id).trim()) return i + 1;
     }
     return -1;
   }
