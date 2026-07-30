@@ -174,6 +174,7 @@ function normalizeKey_(key) {
   if (s === 'luas_tanah_m2' || s === 'luas_tanah_(m2)') return 'luas_tanah';
   if (s === 'luas_bangunan_m2' || s === 'luas_bangunan_(m2)') return 'luas_bangunan';
   if (s === 'kluster_aset' || s === 'kluster') return 'kluster';
+  if (s === 'kategori' || s === 'kategori_penitipan' || s === 'status_penitipan') return 'kategori_penitipan';
   return s;
 }
 
@@ -186,12 +187,6 @@ function getAsetData_() {
   const rows = data.slice(1);
   const features = rows
     .filter(function (row) {
-      // Hanya tampilkan aset yang masih Dalam Penitipan
-      const idxStatus = headers.indexOf('status');
-      if (idxStatus !== -1) {
-        const statusVal = String(row[idxStatus] || '').trim();
-        if (statusVal && statusVal !== 'Dalam Penitipan') return false;
-      }
       return row.some(function(cell) { return cell !== '' && cell !== null && cell !== undefined; });
     })
     .map(function (row, idx) {

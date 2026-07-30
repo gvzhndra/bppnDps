@@ -110,66 +110,90 @@
   .clickable-stat{cursor:pointer;transition:transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;}
   .clickable-stat:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.08);border-color:var(--navy);}
 
-  .stats{display:grid;grid-template-columns:1.3fr repeat(4, 1fr);gap:12px;padding:14px 24px;}
+  /* ---- Executive KPI Panel (1 Panel Terpadu 3 Seksi) ---- */
+  .kpi-panel-container {
+    display: grid;
+    grid-template-columns: 220px 1.4fr 1.2fr;
+    gap: 14px;
+    padding: 14px 24px;
+  }
 
-  /* ---- Hero Stat Card (Emphasis Pimpinan 2 Row) ---- */
-  .stat.hero-stat {
-    grid-row: span 2;
+  /* Seksi 1: Hero Kluster (Kiri) */
+  .kpi-hero-block {
     background: linear-gradient(135deg, #1B3A5C 0%, #0F253E 100%);
-    color: #ffffff;
     border: 1px solid #122A44;
     border-radius: 10px;
-    padding: 16px 18px;
+    padding: 14px 16px;
+    color: #fff;
     display: flex;
     flex-direction: column;
     justify-content: space-between;
-    box-shadow: 0 6px 20px rgba(27, 58, 92, 0.25);
+    box-shadow: 0 4px 14px rgba(27, 58, 92, 0.22);
     position: relative;
-    overflow: hidden;
+    cursor: pointer;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
   }
-  .stat.hero-stat .hero-top {
+  .kpi-hero-block:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(27, 58, 92, 0.35);
+  }
+  .kpi-hero-header {
     display: flex;
-    justify-content: space-between;
+    align-items: center;
+    gap: 8px;
+  }
+  .kpi-hero-icon { font-size: 18px; }
+  .kpi-hero-title { font-size: 12px; font-weight: 600; color: #94A3B8; text-transform: uppercase; letter-spacing: 0.5px; }
+  .kpi-hero-value strong { display: block; font-size: 32px; font-weight: 700; color: #38BDF8; line-height: 1.1; margin-top: 4px; }
+  .kpi-hero-sub { font-size: 11px; color: #CBD5E1; }
+  .kpi-hero-hint { font-size: 10px; color: #94A3B8; background: rgba(255,255,255,0.08); padding: 4px 8px; border-radius: 4px; margin-top: 8px; border: 1px solid rgba(255,255,255,0.1); }
+
+  /* Seksi 2: Metrik Fisik & Geometri (Tengah) */
+  .kpi-metrics-block {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
     align-items: center;
   }
-  .stat.hero-stat .hero-icon {
-    font-size: 20px;
+  .kpi-item { display: flex; flex-direction: column; padding: 6px 8px; border-radius: 6px; transition: background 0.15s; }
+  .kpi-item.clickable-stat:hover { background: #F8FAFC; cursor: pointer; }
+  .kpi-label { font-size: 11px; color: var(--text-mut); margin-bottom: 2px; }
+  .kpi-num { font-size: 18px; font-weight: 600; color: var(--text); }
+  .kpi-num.warn-text { color: #D97706; }
+
+  /* Seksi 3: Status Penatausahaan - Interactive Pills (Kanan) */
+  .kpi-status-block {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 12px 16px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
   }
-  .stat.hero-stat .hero-label {
-    color: #94A3B8;
-    font-weight: 600;
-    font-size: 12px;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    display: block;
-  }
-  .stat.hero-stat strong {
-    color: #38BDF8;
-    font-size: 32px;
-    font-weight: 700;
-    margin-top: 4px;
-    display: block;
-  }
-  .stat.hero-stat .hero-badge {
-    background: rgba(56, 189, 248, 0.15);
-    color: #38BDF8;
-    font-size: 9px;
-    padding: 3px 8px;
-    border-radius: 4px;
-    font-weight: 700;
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-    border: 1px solid rgba(56, 189, 248, 0.3);
-  }
-  .stat.hero-stat .hero-footer {
+  .kpi-status-header { font-size: 11px; font-weight: 600; color: var(--text-mut); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .kpi-pills-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .status-pill {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    background: #F8FAFC;
+    border: 1px solid var(--border);
+    padding: 6px 10px;
+    border-radius: 20px;
     font-size: 11px;
-    color: #CBD5E1;
-    background: rgba(255, 255, 255, 0.07);
-    padding: 8px 10px;
-    border-radius: 6px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    margin-top: 10px;
+    cursor: pointer;
+    transition: all 0.15s ease;
   }
+  .status-pill:hover { background: #F1F5F9; border-color: var(--navy); transform: translateY(-1px); }
+  .pill-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex-shrink: 0; }
+  .pill-name { color: var(--text); font-weight: 500; flex-grow: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pill-val { font-size: 13px; font-weight: 700; color: var(--navy); }
 
   /* ---- Baris & Akordion Kluster ---- */
   .cluster-card{background:#fff;border:1px solid var(--border);border-radius:8px;margin-bottom:12px;overflow:hidden;transition:border-color 0.2s;}

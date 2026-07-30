@@ -9,7 +9,7 @@
 <script>guardDashboardPage();</script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
-<link rel="stylesheet" href="css/style.css?v=3.0">
+<link rel="stylesheet" href="css/style.css?v=3.2">
 </head>
 <body>
 
@@ -49,32 +49,70 @@
 
 
 
-<div class="stats">
-  <!-- Hero Card: Total Kluster (Mengambil tinggi 2 baris / span 2 rows) -->
-  <div class="stat hero-stat clickable-stat" id="cardTotalKluster" title="Klik untuk lihat tab Kluster Aset">
-    <div class="hero-top">
-      <span class="hero-icon">🗂️</span>
+<div class="kpi-panel-container">
+  <!-- Seksi 1: Hero Kluster (Kiri) -->
+  <div class="kpi-hero-block clickable-stat" id="cardTotalKluster" title="Klik untuk lihat tab Kluster Aset">
+    <div class="kpi-hero-header">
+      <span class="kpi-hero-icon">🗂️</span>
+      <span class="kpi-hero-title">Total Kluster</span>
     </div>
-    <div style="margin-top:10px;">
-      <span class="hero-label">Total Kluster Aset</span>
+    <div class="kpi-hero-value">
       <strong id="statTotalKluster">0</strong>
+      <span class="kpi-hero-sub">Kelompok Aset</span>
     </div>
-    <div class="hero-footer">
-      <span>📍 Klik untuk kelola akordion &amp; fokus kluster</span>
+    <div class="kpi-hero-hint">📍 Klik untuk navigasi Kluster</div>
+  </div>
+
+  <!-- Seksi 2: Metrik Fisik & Geometri (Tengah) -->
+  <div class="kpi-metrics-block">
+    <div class="kpi-item clickable-stat" id="cardTotalAset" title="Klik untuk lihat semua aset">
+      <span class="kpi-label">Total Aset</span>
+      <strong id="statTotal" class="kpi-num">0</strong>
+    </div>
+    <div class="kpi-item">
+      <span class="kpi-label">Luas Tanah (m²)</span>
+      <strong id="statLuasTanah" class="kpi-num">0</strong>
+    </div>
+    <div class="kpi-item">
+      <span class="kpi-label">Luas Bangunan (m²)</span>
+      <strong id="statLuasBangunan" class="kpi-num">0</strong>
+    </div>
+    <div class="kpi-item clickable-stat" id="cardBelumKoordinat" title="Klik untuk filter belum ada koordinat">
+      <span class="kpi-label">Belum Ada Koordinat</span>
+      <strong id="statTitik" class="kpi-num warn-text">0</strong>
+    </div>
+    <div class="kpi-item clickable-stat" id="cardBatasBelumDitemukan" title="Klik untuk filter batas belum ditemukan" style="grid-column: span 2;">
+      <span class="kpi-label">Batas Belum Ditemukan</span>
+      <strong id="statPolygon" class="kpi-num warn-text">0</strong>
     </div>
   </div>
 
-  <!-- Baris 1: Metrik Utama (4 Card) -->
-  <div class="stat clickable-stat" id="cardTotalAset" title="Klik untuk lihat semua aset"><span>Total aset</span><strong id="statTotal">0</strong></div>
-  <div class="stat"><span>Luas Tanah (m²)</span><strong id="statLuasTanah">0</strong></div>
-  <div class="stat"><span>Luas Bangunan (m²)</span><strong id="statLuasBangunan">0</strong></div>
-  <div class="stat clickable-stat" id="cardBelumKoordinat" title="Klik untuk filter aset belum berkoordinat"><span>Belum Punya Koordinat</span><strong id="statTitik">0</strong></div>
-
-  <!-- Baris 2: Detail Geometri & Penatausahaan Status (4 Card) -->
-  <div class="stat clickable-stat" id="cardBatasBelumDitemukan" title="Klik untuk filter batas belum ditemukan"><span>Batas Belum Ditemukan</span><strong id="statPolygon">0</strong></div>
-  <div class="stat clickable-stat" id="cardSudahDimanfaatkan" style="border-left:4px solid #1D9E75;" title="Klik untuk filter Sudah Dimanfaatkan"><span>Sudah Dimanfaatkan</span><strong id="statSudahDimanfaatkan">0</strong></div>
-  <div class="stat clickable-stat" id="cardBelumDimanfaatkan" style="border-left:4px solid #94A3B8;" title="Klik untuk filter Belum Dimanfaatkan"><span>Belum Dimanfaatkan</span><strong id="statBelumDimanfaatkan">0</strong></div>
-  <div class="stat clickable-stat" id="cardBermasalah" style="border-left:4px solid #B23A3A;" title="Klik untuk filter Bermasalah Hukum"><span>Bermasalah Hukum</span><strong id="statBermasalah">0</strong></div>
+  <!-- Seksi 3: Status Penatausahaan - Interactive Pills (Kanan) -->
+  <div class="kpi-status-block">
+    <div class="kpi-status-header">Status Penatausahaan</div>
+    <div class="kpi-pills-grid">
+      <div class="status-pill pill-sudah clickable-stat" id="cardSudahDimanfaatkan" title="Filter: Sudah Dimanfaatkan">
+        <span class="pill-dot" style="background:#1D9E75;"></span>
+        <span class="pill-name">Sudah Dimanfaatkan</span>
+        <strong id="statSudahDimanfaatkan" class="pill-val">0</strong>
+      </div>
+      <div class="status-pill pill-belum clickable-stat" id="cardBelumDimanfaatkan" title="Filter: Belum Dimanfaatkan">
+        <span class="pill-dot" style="background:#94A3B8;"></span>
+        <span class="pill-name">Belum Dimanfaatkan</span>
+        <strong id="statBelumDimanfaatkan" class="pill-val">0</strong>
+      </div>
+      <div class="status-pill pill-masalah clickable-stat" id="cardBermasalah" title="Filter: Bermasalah Hukum">
+        <span class="pill-dot" style="background:#B23A3A;"></span>
+        <span class="pill-name">Bermasalah Hukum</span>
+        <strong id="statBermasalah" class="pill-val">0</strong>
+      </div>
+      <div class="status-pill pill-lain clickable-stat" id="cardBerakhir" title="Filter: Lain-lain">
+        <span class="pill-dot" style="background:#7C3AED;"></span>
+        <span class="pill-name">Lain-lain</span>
+        <strong id="statBerakhir" class="pill-val">0</strong>
+      </div>
+    </div>
+  </div>
 </div>
 
 <div class="main">
@@ -135,8 +173,8 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
-<script src="js/api.js?v=3.0"></script>
-<script src="js/app.js?v=3.0"></script>
+<script src="js/api.js?v=3.2"></script>
+<script src="js/app.js?v=3.2"></script>
 
 </body>
 </html>

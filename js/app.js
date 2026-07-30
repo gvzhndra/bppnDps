@@ -332,6 +332,15 @@ if(filterAsalEl) filterAsalEl.addEventListener('change', () => { specialFilter =
 const searchEl = document.getElementById('search');
 if(searchEl) searchEl.addEventListener('input', () => { specialFilter = null; currentPage = 1; renderAll(); });
 
+function getKategoriPenitipanValue(props){
+  if(!props) return '';
+  if(props.kategori_penitipan !== undefined && props.kategori_penitipan !== null && String(props.kategori_penitipan).trim() !== '') return String(props.kategori_penitipan).trim();
+  if(props.kategori !== undefined && props.kategori !== null && String(props.kategori).trim() !== '') return String(props.kategori).trim();
+  if(props.status_penitipan !== undefined && props.status_penitipan !== null && String(props.status_penitipan).trim() !== '') return String(props.status_penitipan).trim();
+  if(props.status !== undefined && props.status !== null && String(props.status).trim() !== '' && props.status !== 'Dalam Penitipan') return String(props.status).trim();
+  return '';
+}
+
 function visibleFeatures(){
   const fStatus = currentFilterStatus();
   const fAsal = currentFilterAsal();
@@ -343,7 +352,10 @@ function visibleFeatures(){
     } else if(specialFilter === 'no_poly'){
       if(a.geomType === "polygon" && isValidPolygonCoords(a.coords)) return false;
     }
-    if(fStatus !== 'all' && a.props.kategori_penitipan !== fStatus) return false;
+    if(fStatus !== 'all'){
+      const kat = getKategoriPenitipanValue(a.props);
+      if(kat !== fStatus) return false;
+    }
     if(fAsal !== 'all'){
       if(getNormalizedAsalAset(a.props.asal_aset) !== fAsal) return false;
     }
@@ -573,10 +585,13 @@ function renderAll(){
     return !isValidPolygonCoords(a.coords);
   }).length;
   const batasBelumDitemukan = vis.filter(a => a.geomType !== "polygon").length;
-  const sudahDimanfaatkanCount = vis.filter(a => a.props.kategori_penitipan === "Sudah Dimanfaatkan" || a.props.kategori_penitipan === "Dimanfaatkan").length;
-  const belumDimanfaatkanCount = vis.filter(a => a.props.kategori_penitipan === "Belum Dimanfaatkan").length;
-  const bermasalahCount = vis.filter(a => a.props.kategori_penitipan === "Bermasalah Hukum").length;
-  const lainLainCount = vis.filter(a => a.props.kategori_penitipan === "Lain-lain").length;
+  const sudahDimanfaatkanCount = vis.filter(a => {
+    const k = getKategoriPenitipanValue(a.props);
+    return k === "Sudah Dimanfaatkan" || k === "Dimanfaatkan";
+  }).length;
+  const belumDimanfaatkanCount = vis.filter(a => getKategoriPenitipanValue(a.props) === "Belum Dimanfaatkan").length;
+  const bermasalahCount = vis.filter(a => getKategoriPenitipanValue(a.props) === "Bermasalah Hukum").length;
+  const lainLainCount = vis.filter(a => getKategoriPenitipanValue(a.props) === "Lain-lain").length;
 
   const totalLuasTanah = vis.reduce((s,a) => s + getLuasTanah(a.props), 0);
   const totalLuasBangunan = vis.reduce((s,a) => s + getLuasBangunan(a.props), 0);
