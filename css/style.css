@@ -110,6 +110,40 @@
   .clickable-stat{cursor:pointer;transition:transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;}
   .clickable-stat:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.08);border-color:var(--navy);}
 
+  /* ---- Hero Stat Card (Emphasis Pimpinan) ---- */
+  .stat.hero-stat {
+    background: linear-gradient(135deg, #1B3A5C 0%, #0F253E 100%);
+    color: #ffffff;
+    border: 1px solid #122A44;
+    box-shadow: 0 4px 12px rgba(27, 58, 92, 0.25);
+    position: relative;
+    overflow: hidden;
+  }
+  .stat.hero-stat span {
+    color: #94A3B8;
+    font-weight: 600;
+    font-size: 11px;
+    letter-spacing: 0.3px;
+  }
+  .stat.hero-stat strong {
+    color: #38BDF8;
+    font-size: 22px;
+  }
+  .stat.hero-stat .hero-badge {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    background: rgba(56, 189, 248, 0.15);
+    color: #38BDF8;
+    font-size: 9px;
+    padding: 2px 6px;
+    border-radius: 4px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border: 1px solid rgba(56, 189, 248, 0.3);
+  }
+
   /* ---- Baris & Akordion Kluster ---- */
   .cluster-card{background:#fff;border:1px solid var(--border);border-radius:8px;margin-bottom:12px;overflow:hidden;transition:border-color 0.2s;}
   .cluster-card:hover{border-color:#cbd5e1;}
