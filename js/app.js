@@ -276,12 +276,21 @@ function currentSearch(){
   const el = document.getElementById('search');
   return el ? el.value.toLowerCase() : '';
 }
+function getClusterValue(props){
+  if(!props) return '';
+  if(props.kluster !== undefined && props.kluster !== null && String(props.kluster).trim() !== '') return String(props.kluster).trim();
+  if(props.Kluster !== undefined && props.Kluster !== null && String(props.Kluster).trim() !== '') return String(props.Kluster).trim();
+  if(props['Kluster Aset'] !== undefined && props['Kluster Aset'] !== null && String(props['Kluster Aset']).trim() !== '') return String(props['Kluster Aset']).trim();
+  if(props.kluster_aset !== undefined && props.kluster_aset !== null && String(props.kluster_aset).trim() !== '') return String(props.kluster_aset).trim();
+  return '';
+}
+
 function matchesSearch(a, s){
   if(!s) return true;
   return (a.props.kode_aset||"").toLowerCase().includes(s)
     || (a.props.asal_aset||"").toLowerCase().includes(s)
     || (a.props.lokasi||"").toLowerCase().includes(s)
-    || (a.props.kluster||"").toLowerCase().includes(s)
+    || getClusterValue(a.props).toLowerCase().includes(s)
     || (a.props.status||"").toLowerCase().includes(s)
     || (a.props.kategori_penitipan||"").toLowerCase().includes(s)
     || (a.props.jenis_pemanfaatan||"").toLowerCase().includes(s)
@@ -346,7 +355,7 @@ function visibleFeatures(){
 function getUniqueClusters(){
   const set = new Set();
   features.forEach(a => {
-    const k = (a.props && a.props.kluster) ? String(a.props.kluster).trim() : '';
+    const k = getClusterValue(a.props);
     if(k) set.add(k);
   });
   return Array.from(set).sort();
@@ -355,7 +364,7 @@ function getUniqueClusters(){
 function groupAssetsByCluster(assetList){
   const groups = {};
   assetList.forEach(a => {
-    const name = (a.props && a.props.kluster) ? String(a.props.kluster).trim() : 'Tanpa Kluster';
+    const name = getClusterValue(a.props) || 'Tanpa Kluster';
     if(!groups[name]) groups[name] = [];
     groups[name].push(a);
   });
@@ -540,7 +549,7 @@ function renderAll(){
     tr.innerHTML = `<td>${escapeHtml(a.props.kode_aset || "-")}</td>
       <td><span class="badge" style="background:#1B3A5C;">${escapeHtml(getNormalizedAsalAset(a.props.asal_aset))}</span></td>
       <td>${escapeHtml(a.props.lokasi || "-")}</td>
-      <td><span class="badge" style="background:#475569;">${escapeHtml(a.props.kluster || "Tanpa Kluster")}</span></td>
+      <td><span class="badge" style="background:#475569;">${escapeHtml(getClusterValue(a.props) || "Tanpa Kluster")}</span></td>
       <td>${geomLabel}</td>
       <td>${luasTanahVal.toLocaleString('id-ID')}</td>
       <td>${luasBangunanVal.toLocaleString('id-ID')}</td>
@@ -711,7 +720,7 @@ function renderViewPanel(a){
     <div class="view-row"><span class="view-label">Kode aset</span><span class="view-value">${escapeHtml(a.props.kode_aset || "-")}</span></div>
     <div class="view-row"><span class="view-label">Asal aset</span><span class="view-value"><span class="badge" style="background:#1B3A5C;">${escapeHtml(getNormalizedAsalAset(a.props.asal_aset))}</span></span></div>
     <div class="view-row"><span class="view-label">Lokasi</span><span class="view-value">${escapeHtml(a.props.lokasi || "-")}</span></div>
-    <div class="view-row"><span class="view-label">Kluster</span><span class="view-value">${escapeHtml(a.props.kluster || "Tanpa Kluster")}</span></div>
+    <div class="view-row"><span class="view-label">Kluster</span><span class="view-value">${escapeHtml(getClusterValue(a.props) || "Tanpa Kluster")}</span></div>
     <div class="view-row"><span class="view-label">Luas tanah (m²)</span><span class="view-value">${getLuasTanah(a.props).toLocaleString('id-ID')}</span></div>
     <div class="view-row"><span class="view-label">Luas bangunan (m²)</span><span class="view-value">${getLuasBangunan(a.props).toLocaleString('id-ID')}</span></div>
     <div class="view-row"><span class="view-label">Status</span><div class="badge-group">${statusBadgesHtml(a.props)}</div></div>
@@ -1070,7 +1079,7 @@ function renderEditPanel(a){
     </div>
     <div class="field"><label>Lokasi</label><input type="text" id="f-lokasi" value="${escapeHtml(a.props.lokasi || "")}"></div>
     <div class="field"><label>Kluster Aset</label>
-      <input type="text" id="f-kluster" value="${escapeHtml(a.props.kluster || "")}" list="kluster-list" placeholder="mis. Kluster Kesiman, Kluster Sanur, dll.">
+      <input type="text" id="f-kluster" value="${escapeHtml(getClusterValue(a.props))}" list="kluster-list" placeholder="mis. Kluster Kesiman, Kluster Sanur, dll.">
       <datalist id="kluster-list">
         ${getUniqueClusters().map(c => `<option value="${escapeHtml(c)}">`).join('')}
       </datalist>

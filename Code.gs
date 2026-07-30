@@ -173,6 +173,7 @@ function normalizeKey_(key) {
   if (s === 'asal' || s === 'asal_asset' || s === 'asal_aset_bppn_ppa') return 'asal_aset';
   if (s === 'luas_tanah_m2' || s === 'luas_tanah_(m2)') return 'luas_tanah';
   if (s === 'luas_bangunan_m2' || s === 'luas_bangunan_(m2)') return 'luas_bangunan';
+  if (s === 'kluster_aset' || s === 'kluster') return 'kluster';
   return s;
 }
 
@@ -339,8 +340,28 @@ function doPost(e) {
 function upsertAsset_(asset) {
   const sheet = getSheet_(SHEET_ASET);
   if (!sheet) return { ok: false, error: "Sheet '" + SHEET_ASET + "' tidak ditemukan" };
-  const data = sheet.getDataRange().getValues();
-  const headers = data[0];
+  let data = sheet.getDataRange().getValues();
+  let headers = data[0] || [];
+
+  if (asset.props) {
+    let headerModified = false;
+    const existingNorms = headers.map(function(h) { return normalizeKey_(h); });
+    Object.keys(asset.props).forEach(function(key) {
+      if (RESERVED_COLUMNS.indexOf(key) === -1) {
+        const normKey = normalizeKey_(key);
+        if (existingNorms.indexOf(normKey) === -1 && headers.indexOf(key) === -1) {
+          headers.push(key);
+          existingNorms.push(normKey);
+          headerModified = true;
+        }
+      }
+    });
+    if (headerModified) {
+      sheet.getRange(1, 1, 1, headers.length).setValues([headers]);
+      data = sheet.getDataRange().getValues();
+    }
+  }
+
   function findRowIndexById(id) {
     for (let i = 1; i < data.length; i++) {
       if (String(data[i][0]) === String(id)) return i + 1;
@@ -363,7 +384,7 @@ function upsertAsset_(asset) {
   } else {
     sheet.getRange(rowIndex, 1, 1, headers.length).setValues([rowValues]);
   }
-  return { ok: true };
+  return { ok: true, headers: headers };
 }
 
 function deleteAsset_(id) {

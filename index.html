@@ -50,23 +50,32 @@
 
 
 <div class="stats">
-  <!-- Baris 1: Ringkasan Utama & Kluster (Emphasis Pimpinan) -->
-  <div class="stat hero-stat clickable-stat" id="cardTotalKluster" title="Klik untuk lihat tab Kluster">
-    <span class="hero-badge">Pimpinan</span>
-    <span>🗂️ Total Kluster</span>
-    <strong id="statTotalKluster">0</strong>
+  <!-- Hero Card: Total Kluster (Mengambil tinggi 2 baris / span 2 rows) -->
+  <div class="stat hero-stat clickable-stat" id="cardTotalKluster" title="Klik untuk lihat tab Kluster Aset">
+    <div class="hero-top">
+      <span class="hero-badge">PIMPINAN</span>
+      <span class="hero-icon">🗂️</span>
+    </div>
+    <div style="margin-top:10px;">
+      <span class="hero-label">Total Kluster Aset</span>
+      <strong id="statTotalKluster">0</strong>
+    </div>
+    <div class="hero-footer">
+      <span>📍 Klik untuk kelola akordion &amp; fokus kluster</span>
+    </div>
   </div>
+
+  <!-- Baris 1: Metrik Utama (4 Card) -->
   <div class="stat clickable-stat" id="cardTotalAset" title="Klik untuk lihat semua aset"><span>Total aset</span><strong id="statTotal">0</strong></div>
   <div class="stat"><span>Luas Tanah (m²)</span><strong id="statLuasTanah">0</strong></div>
   <div class="stat"><span>Luas Bangunan (m²)</span><strong id="statLuasBangunan">0</strong></div>
   <div class="stat clickable-stat" id="cardBelumKoordinat" title="Klik untuk filter aset belum berkoordinat"><span>Belum Punya Koordinat</span><strong id="statTitik">0</strong></div>
 
-  <!-- Baris 2: Detail Geometri & Penatausahaan Status -->
+  <!-- Baris 2: Detail Geometri & Penatausahaan Status (4 Card) -->
   <div class="stat clickable-stat" id="cardBatasBelumDitemukan" title="Klik untuk filter batas belum ditemukan"><span>Batas Belum Ditemukan</span><strong id="statPolygon">0</strong></div>
   <div class="stat clickable-stat" id="cardSudahDimanfaatkan" style="border-left:4px solid #1D9E75;" title="Klik untuk filter Sudah Dimanfaatkan"><span>Sudah Dimanfaatkan</span><strong id="statSudahDimanfaatkan">0</strong></div>
   <div class="stat clickable-stat" id="cardBelumDimanfaatkan" style="border-left:4px solid #94A3B8;" title="Klik untuk filter Belum Dimanfaatkan"><span>Belum Dimanfaatkan</span><strong id="statBelumDimanfaatkan">0</strong></div>
   <div class="stat clickable-stat" id="cardBermasalah" style="border-left:4px solid #B23A3A;" title="Klik untuk filter Bermasalah Hukum"><span>Bermasalah Hukum</span><strong id="statBermasalah">0</strong></div>
-  <div class="stat clickable-stat" id="cardBerakhir" style="border-left:4px solid #7C3AED;" title="Klik untuk filter Lain-lain"><span>Lain-lain</span><strong id="statBerakhir">0</strong></div>
 </div>
 
 <div class="main">

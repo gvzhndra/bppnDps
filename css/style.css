@@ -110,38 +110,65 @@
   .clickable-stat{cursor:pointer;transition:transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;}
   .clickable-stat:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.08);border-color:var(--navy);}
 
-  /* ---- Hero Stat Card (Emphasis Pimpinan) ---- */
+  .stats{display:grid;grid-template-columns:1.3fr repeat(4, 1fr);gap:12px;padding:14px 24px;}
+
+  /* ---- Hero Stat Card (Emphasis Pimpinan 2 Row) ---- */
   .stat.hero-stat {
+    grid-row: span 2;
     background: linear-gradient(135deg, #1B3A5C 0%, #0F253E 100%);
     color: #ffffff;
     border: 1px solid #122A44;
-    box-shadow: 0 4px 12px rgba(27, 58, 92, 0.25);
+    border-radius: 10px;
+    padding: 16px 18px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 6px 20px rgba(27, 58, 92, 0.25);
     position: relative;
     overflow: hidden;
   }
-  .stat.hero-stat span {
+  .stat.hero-stat .hero-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .stat.hero-stat .hero-icon {
+    font-size: 20px;
+  }
+  .stat.hero-stat .hero-label {
     color: #94A3B8;
     font-weight: 600;
-    font-size: 11px;
-    letter-spacing: 0.3px;
+    font-size: 12px;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    display: block;
   }
   .stat.hero-stat strong {
     color: #38BDF8;
-    font-size: 22px;
+    font-size: 32px;
+    font-weight: 700;
+    margin-top: 4px;
+    display: block;
   }
   .stat.hero-stat .hero-badge {
-    position: absolute;
-    top: 8px;
-    right: 8px;
     background: rgba(56, 189, 248, 0.15);
     color: #38BDF8;
     font-size: 9px;
-    padding: 2px 6px;
+    padding: 3px 8px;
     border-radius: 4px;
     font-weight: 700;
     text-transform: uppercase;
     letter-spacing: 0.5px;
     border: 1px solid rgba(56, 189, 248, 0.3);
+  }
+  .stat.hero-stat .hero-footer {
+    font-size: 11px;
+    color: #CBD5E1;
+    background: rgba(255, 255, 255, 0.07);
+    padding: 8px 10px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    margin-top: 10px;
   }
 
   /* ---- Baris & Akordion Kluster ---- */
@@ -190,6 +217,7 @@
     .toolbar input, .toolbar select{width:100%;}
 
     .stats{grid-template-columns:repeat(2, 1fr);padding:12px 14px;}
+    .stat.hero-stat{grid-row:span 1;grid-column:span 2;}
     .stats-secondary{grid-template-columns:repeat(2, 1fr);padding:0 14px 12px;}
     .legend{padding:10px 14px 8px;}
 
