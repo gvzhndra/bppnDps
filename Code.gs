@@ -105,7 +105,7 @@ function requireSession_(token) {
 
 function requireAdmin_(token) {
   const session = requireSession_(token);
-  if (session.role !== 'admin') throw new Error('Akses ditolak. Hanya admin yang bisa melakukan perubahan.');
+  if (String(session.role || '').toLowerCase() !== 'admin') throw new Error('Akses ditolak. Hanya admin yang bisa melakukan perubahan.');
   return session;
 }
 
@@ -173,7 +173,7 @@ function normalizeKey_(key) {
   if (s === 'asal' || s === 'asal_asset' || s === 'asal_aset_bppn_ppa') return 'asal_aset';
   if (s === 'luas_tanah_m2' || s === 'luas_tanah_(m2)') return 'luas_tanah';
   if (s === 'luas_bangunan_m2' || s === 'luas_bangunan_(m2)') return 'luas_bangunan';
-  if (s === 'kluster_aset' || s === 'kluster') return 'kluster';
+  if (s === 'kluster_aset' || s === 'kluster' || s === 'cluster' || s === 'cluster_aset') return 'kluster';
   if (s === 'kategori' || s === 'kategori_penitipan' || s === 'status_penitipan') return 'kategori_penitipan';
   return s;
 }
