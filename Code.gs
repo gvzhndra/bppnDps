@@ -392,6 +392,7 @@ function upsertAsset_(asset) {
     if (h === 'geometry_json') return JSON.stringify(asset.geometry);
     if (!asset.props) return '';
     const norm = normalizeKey_(h);
+    if (asset.props[norm] !== undefined && String(asset.props[norm]).trim() !== '') return asset.props[norm];
     if (asset.props[h] !== undefined) return asset.props[h];
     if (asset.props[norm] !== undefined) return asset.props[norm];
     return '';

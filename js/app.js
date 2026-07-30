@@ -1156,7 +1156,11 @@ function renderEditPanel(a){
     a.props.kode_aset = document.getElementById('f-kode_aset').value;
     a.props.asal_aset = document.getElementById('f-asal_aset').value;
     a.props.lokasi = document.getElementById('f-lokasi').value;
-    a.props.kluster = document.getElementById('f-kluster').value.trim();
+    const klusterVal = document.getElementById('f-kluster').value.trim();
+    a.props.kluster = klusterVal;
+    if(a.props.Kluster !== undefined) a.props.Kluster = klusterVal;
+    if(a.props['Kluster Aset'] !== undefined) a.props['Kluster Aset'] = klusterVal;
+    if(a.props.kluster_aset !== undefined) a.props.kluster_aset = klusterVal;
     a.props.luas_tanah = Number(document.getElementById('f-luas_tanah').value) || 0;
     a.props.luas_bangunan = Number(document.getElementById('f-luas_bangunan').value) || 0;
     a.props.luas = a.props.luas_tanah;
