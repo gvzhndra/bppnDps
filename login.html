@@ -7,24 +7,104 @@
 <script src="js/config.js"></script>
 <script src="js/auth.js"></script>
 <script>redirectIfLoggedIn();</script>
-<link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/style.css?v=3.3">
+<style>
+  body {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #F1F5F9;
+    margin: 0;
+    font-family: system-ui, -apple-system, sans-serif;
+  }
+  .login-card {
+    background: #ffffff;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 28px 30px;
+    width: 360px;
+    max-width: 90vw;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+    position: relative;
+    z-index: 100;
+  }
+  .login-card h3 {
+    margin: 0 0 4px;
+    font-size: 18px;
+    color: var(--navy);
+    font-weight: 700;
+  }
+  .login-card input {
+    width: 100%;
+    box-sizing: border-box;
+    position: relative;
+    z-index: 10;
+    pointer-events: auto;
+    cursor: text;
+    padding: 9px 12px;
+    font-size: 14px;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    background: #ffffff;
+    color: var(--text);
+  }
+  .login-card input:focus {
+    outline: none;
+    border-color: var(--navy);
+    box-shadow: 0 0 0 3px rgba(27, 58, 92, 0.12);
+  }
+  .login-card .field {
+    margin-bottom: 14px;
+  }
+  .login-card .field label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-mut);
+    margin-bottom: 5px;
+  }
+  .password-wrap {
+    position: relative;
+    width: 100%;
+  }
+  .password-wrap input {
+    padding-right: 40px;
+  }
+  .toggle-password-btn {
+    position: absolute;
+    right: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 20;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 16px;
+    padding: 6px 8px;
+    color: var(--text-mut);
+  }
+</style>
 </head>
-<body style="min-height:100vh;display:flex;align-items:center;justify-content:center;">
+<body>
 
-  <div class="modal" style="width:340px;box-shadow:0 4px 24px rgba(0,0,0,0.10);">
-    <h3 style="margin-bottom:2px;">Masuk ke Dashboard</h3>
-    <p class="small-note" style="margin-top:0;margin-bottom:16px;">Dashboard Aset eks BPPN — KPKNL Denpasar</p>
-    <div class="field"><label>Username</label><input type="text" id="loginUsername" autocomplete="username"></div>
+  <div class="login-card">
+    <h3>Masuk ke Dashboard</h3>
+    <p class="small-note" style="margin-top:2px;margin-bottom:20px;">Dashboard Aset eks BPPN — KPKNL Denpasar</p>
     <div class="field">
-      <label>Password</label>
+      <label for="loginUsername">Username</label>
+      <input type="text" id="loginUsername" autocomplete="username" placeholder="Masukkan username">
+    </div>
+    <div class="field">
+      <label for="loginPassword">Password</label>
       <div class="password-wrap">
-        <input type="password" id="loginPassword" autocomplete="current-password">
+        <input type="password" id="loginPassword" autocomplete="current-password" placeholder="Masukkan password">
         <button type="button" id="togglePassword" class="toggle-password-btn" aria-label="Tampilkan password">👁</button>
       </div>
     </div>
-    <div id="loginError" style="color:var(--masalah);font-size:12px;margin-bottom:6px;display:none;"></div>
-    <div class="modal-actions">
-      <button class="primary" id="btnLogin" style="width:100%;">Masuk</button>
+    <div id="loginError" style="color:var(--masalah);font-size:12px;margin-bottom:12px;display:none;background:#FEF2F2;border:1px solid #FCA5A5;padding:8px 10px;border-radius:6px;"></div>
+    <div class="modal-actions" style="margin-top:16px;">
+      <button class="primary" id="btnLogin" style="width:100%;padding:10px 16px;font-size:14px;font-weight:600;cursor:pointer;">Masuk</button>
     </div>
   </div>
 

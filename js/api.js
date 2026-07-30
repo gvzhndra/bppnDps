@@ -30,7 +30,15 @@ async function apiGet(action, extraParams){
     extraParams || {}
   ));
   const res = await fetch(API_URL + "?" + params.toString());
-  return res.json();
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch(e) {
+    if (isSessionError(text) || text.includes('<!DOCTYPE') || text.includes('<html')) {
+      return { ok: false, error: "Sesi login tidak valid atau sudah kedaluwarsa. Silakan login ulang." };
+    }
+    return { ok: false, error: "Respon server tidak valid: " + text.substring(0, 80) };
+  }
 }
 async function apiSend(action, payload){
   const res = await fetch(API_URL, {
@@ -38,7 +46,15 @@ async function apiSend(action, payload){
     headers: { "Content-Type": "text/plain;charset=utf-8" },
     body: JSON.stringify(Object.assign({ action, token: getToken() }, payload))
   });
-  return res.json();
+  const text = await res.text();
+  try {
+    return JSON.parse(text);
+  } catch(e) {
+    if (isSessionError(text) || text.includes('<!DOCTYPE') || text.includes('<html')) {
+      return { ok: false, error: "Sesi login tidak valid atau sudah kedaluwarsa. Silakan login ulang." };
+    }
+    return { ok: false, error: "Respon server tidak valid: " + text.substring(0, 80) };
+  }
 }
 
 async function loadFromServer(){

@@ -7,6 +7,10 @@
     errEl.textContent = "Sesi berakhir, silakan masuk kembali.";
     errEl.style.display = 'block';
   }
+  setTimeout(() => {
+    const input = document.getElementById('loginUsername');
+    if(input) input.focus();
+  }, 100);
 })();
 
 async function doLogin(){
