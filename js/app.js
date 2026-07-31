@@ -525,7 +525,21 @@ function renderAll(){
   Object.values(leafletLayers).forEach(l => map.removeLayer(l));
   leafletLayers = {};
   const vis = visibleFeatures();
-  vis.forEach(a => {
+
+  // Helper to compute area for z-index ordering (large polygons drawn first, small on top)
+  function getFeatureArea(a){
+    if(a.geomType === "point") return -1; // points always drawn on top
+    if(!isValidPolygonCoords(a.coords)) return 0;
+    // Simple bounding box area approximation
+    const lats = a.coords.map(c => Number(c[0]));
+    const lngs = a.coords.map(c => Number(c[1]));
+    return (Math.max(...lats) - Math.min(...lats)) * (Math.max(...lngs) - Math.min(...lngs));
+  }
+
+  // Sort: Largest polygons first, smaller polygons later, points last (so points/small polygons sit on top)
+  const sortedVis = [...vis].sort((a, b) => getFeatureArea(b) - getFeatureArea(a));
+
+  sortedVis.forEach(a => {
     const color = getPrimaryColor(a.props);
     let layer;
     if(a.geomType === "point"){
@@ -538,6 +552,7 @@ function renderAll(){
       if(isValidPolygonCoords(a.coords)){
         layer = L.polygon(a.coords, {color:color, weight:2, fillColor:color, fillOpacity:0.35}).addTo(map);
         layer.on('click', () => selectAsset(a.id));
+        layer.on('mouseover', function() { this.bringToFront(); });
         leafletLayers[a.id] = layer;
       }
     }
