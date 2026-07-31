@@ -166,6 +166,28 @@ function doGet(e) {
       });
     }
 
+    // TEMPORARY DEBUG: directly write a test kluster value to row 2 without auth
+    if (action === 'testWrite') {
+      const sheet = getSheet_(SHEET_ASET);
+      if (!sheet) return jsonResponse_({ ok: false, error: 'Sheet not found' });
+      const data = sheet.getDataRange().getValues();
+      const headers = data[0] || [];
+      const klusterColIdx = headers.indexOf('kluster');
+      if (klusterColIdx === -1) return jsonResponse_({ ok: false, error: 'kluster column not found', headers: headers });
+      const testValue = (params.value || 'DEBUG_TEST_OK');
+      // Write to row 2 (index 1 = first data row), the kluster column
+      sheet.getRange(2, klusterColIdx + 1).setValue(testValue);
+      // Read back
+      const written = sheet.getRange(2, klusterColIdx + 1).getValue();
+      return jsonResponse_({
+        ok: true,
+        klusterColIdx: klusterColIdx,
+        klusterColLetter: String.fromCharCode(65 + klusterColIdx),
+        writtenValue: written,
+        row2Id: String(data[1][headers.indexOf('id')] || data[1][0])
+      });
+    }
+
     if (action === 'getAset') {
       requireSession_(params.token);
       return jsonResponse_(getAsetData_());
