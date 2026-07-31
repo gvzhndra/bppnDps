@@ -40,6 +40,7 @@ const CORE_PROPS = [
   "kode_aset",
   "asal_aset",
   "lokasi",
+  "kluster",
   "status",
   "kategori_penitipan",
   "keterangan_kategori",

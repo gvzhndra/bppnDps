@@ -188,7 +188,70 @@ function doGet(e) {
       });
     }
 
+    // TEMPORARY DEBUG: run full upsertAsset_ with a test kluster value, no auth
+    if (action === 'testUpsert') {
+      const sheet = getSheet_(SHEET_ASET);
+      if (!sheet) return jsonResponse_({ ok: false, error: 'Sheet not found' });
+      const data = sheet.getDataRange().getValues();
+      const headers = data[0] || [];
+      const klusterColIdx = headers.indexOf('kluster');
+      const idColIdx = headers.indexOf('id');
+      if (idColIdx === -1) return jsonResponse_({ ok: false, error: 'id column not found' });
+      // Read first data row and build a mock asset from it
+      const row = data[1] || [];
+      const mockProps = {};
+      headers.forEach(function(h, i) {
+        if (['id','geom_type','geometry_json'].indexOf(h) === -1) mockProps[h] = row[i];
+      });
+      mockProps.kluster = params.value || 'UPSERT_TEST_XYZ';
+      let geom = null;
+      try { geom = JSON.parse(row[headers.indexOf('geometry_json')] || 'null'); } catch(e) {}
+      const mockAsset = {
+        id: String(row[idColIdx]),
+        geomType: row[headers.indexOf('geom_type')] || 'point',
+        geometry: geom,
+        props: mockProps
+      };
+      const result = upsertAsset_(mockAsset);
+      // Read back
+      const writtenKluster = sheet.getRange(2, klusterColIdx + 1).getValue();
+      return jsonResponse_({
+        ok: true,
+        upsertResult: result,
+        mockAssetId: mockAsset.id,
+        klusterSentValue: mockProps.kluster,
+        klusterWrittenToSheet: writtenKluster,
+        success: writtenKluster === mockProps.kluster
+      });
+    }
+
+    // TEMPORARY DEBUG: read ALL rows kluster + id values without auth
+    if (action === 'readAll') {
+      const sheet = getSheet_(SHEET_ASET);
+      if (!sheet) return jsonResponse_({ ok: false, error: 'Sheet not found' });
+      const data = sheet.getDataRange().getValues();
+      const headers = data[0] || [];
+      const klusterColIdx = headers.indexOf('kluster');
+      const idColIdx = headers.indexOf('id');
+      const kodeColIdx = headers.indexOf('kode_aset');
+      const rows = [];
+      for (var i = 1; i < data.length; i++) {
+        var row = data[i];
+        if (row.some(function(c){ return c !== ''; })) {
+          rows.push({
+            sheetRow: i + 1,
+            id: String(row[idColIdx] || ''),
+            kode_aset: String(row[kodeColIdx] || ''),
+            kluster: String(row[klusterColIdx] || '')
+          });
+        }
+      }
+      return jsonResponse_({ ok: true, totalRows: rows.length, klusterColLetter: String.fromCharCode(65+klusterColIdx), rows: rows });
+    }
+
     if (action === 'getAset') {
+
+
       requireSession_(params.token);
       return jsonResponse_(getAsetData_());
     }
