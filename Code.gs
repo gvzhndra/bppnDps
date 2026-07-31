@@ -145,6 +145,27 @@ function doGet(e) {
     const params = (e && e.parameter) || {};
     const action = params.action || 'getAset';
 
+    // TEMPORARY DEBUG: inspect sheet headers & first 3 rows without auth
+    if (action === 'debugHeaders') {
+      const sheet = getSheet_(SHEET_ASET);
+      if (!sheet) return jsonResponse_({ ok: false, error: 'Sheet not found' });
+      const data = sheet.getDataRange().getValues();
+      const headers = data[0] || [];
+      const row1 = data[1] || [];
+      const row2 = data[2] || [];
+      const sample = {};
+      headers.forEach(function(h, i) { sample[h + ' [col' + (i+1) + ']'] = row1[i]; });
+      const sample2 = {};
+      headers.forEach(function(h, i) { sample2[h + ' [col' + (i+1) + ']'] = row2[i]; });
+      return jsonResponse_({
+        ok: true,
+        totalRows: data.length - 1,
+        headers: headers,
+        row2_data: sample,
+        row3_data: sample2
+      });
+    }
+
     if (action === 'getAset') {
       requireSession_(params.token);
       return jsonResponse_(getAsetData_());
