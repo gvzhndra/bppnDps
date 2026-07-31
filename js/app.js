@@ -1157,10 +1157,11 @@ function renderEditPanel(a){
     a.props.asal_aset = document.getElementById('f-asal_aset').value;
     a.props.lokasi = document.getElementById('f-lokasi').value;
     const klusterVal = document.getElementById('f-kluster').value.trim();
-    a.props.kluster = klusterVal;
-    if(a.props.Kluster !== undefined) a.props.Kluster = klusterVal;
-    if(a.props['Kluster Aset'] !== undefined) a.props['Kluster Aset'] = klusterVal;
-    if(a.props.kluster_aset !== undefined) a.props.kluster_aset = klusterVal;
+    // Sync all possible cluster key variants so backend finds the right one
+    ['kluster','Kluster','kluster_aset','Kluster Aset','cluster','Cluster','cluster_aset','Cluster Aset'].forEach(function(k){
+      if(a.props[k] !== undefined) a.props[k] = klusterVal;
+    });
+    a.props.kluster = klusterVal; // always set canonical key
     a.props.luas_tanah = Number(document.getElementById('f-luas_tanah').value) || 0;
     a.props.luas_bangunan = Number(document.getElementById('f-luas_bangunan').value) || 0;
     a.props.luas = a.props.luas_tanah;
