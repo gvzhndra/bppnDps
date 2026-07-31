@@ -89,7 +89,15 @@ async function persistAsset(a){
   if(API_URL.indexOf("GANTI_DENGAN_URL") !== -1) return;
   showLoading('Menyimpan aset...');
   try{
-    const res = await apiSend("update", { asset: { id:a.id, geomType:a.geomType, geometry: internalToGeometry(a), props: a.props } });
+    const payload = { id:a.id, geomType:a.geomType, geometry: internalToGeometry(a), props: a.props };
+    // DEBUG: log exactly what kluster value is being sent
+    console.log('[DEBUG] persistAsset payload:', JSON.stringify({
+      id: payload.id,
+      kluster: payload.props.kluster,
+      props_keys: Object.keys(payload.props)
+    }));
+    const res = await apiSend("update", { asset: payload });
+    console.log('[DEBUG] update response:', JSON.stringify(res));
     if(!res.ok){
       if(isSessionError(res.error)){ handleSessionExpired(); return; }
       alert("Gagal menyimpan ke Google Sheets: " + res.error);
