@@ -145,23 +145,24 @@ function doGet(e) {
     const params = (e && e.parameter) || {};
     const action = params.action || 'getAset';
 
-    // TEMPORARY DEBUG: inspect sheet headers & all rows without auth
+    // TEMPORARY DEBUG: inspect sheet headers & first 3 rows without auth
     if (action === 'debugHeaders') {
       const sheet = getSheet_(SHEET_ASET);
       if (!sheet) return jsonResponse_({ ok: false, error: 'Sheet not found' });
       const data = sheet.getDataRange().getValues();
       const headers = data[0] || [];
-      const allRows = [];
-      for (var r = 1; r < data.length; r++) {
-        var rowObj = { _rowNum: r + 1 };
-        headers.forEach(function(h, i) { rowObj[h] = data[r][i]; });
-        allRows.push(rowObj);
-      }
+      const row1 = data[1] || [];
+      const row2 = data[2] || [];
+      const sample = {};
+      headers.forEach(function(h, i) { sample[h + ' [col' + (i+1) + ']'] = row1[i]; });
+      const sample2 = {};
+      headers.forEach(function(h, i) { sample2[h + ' [col' + (i+1) + ']'] = row2[i]; });
       return jsonResponse_({
         ok: true,
-        totalRows: allRows.length,
+        totalRows: data.length - 1,
         headers: headers,
-        all_rows: allRows
+        row2_data: sample,
+        row3_data: sample2
       });
     }
 
@@ -224,7 +225,7 @@ function doGet(e) {
       });
     }
 
-    // TEMPORARY DEBUG: read ALL rows kluster + id + geometry status
+    // TEMPORARY DEBUG: read ALL rows kluster + id values without auth
     if (action === 'readAll') {
       const sheet = getSheet_(SHEET_ASET);
       if (!sheet) return jsonResponse_({ ok: false, error: 'Sheet not found' });
@@ -233,35 +234,19 @@ function doGet(e) {
       const klusterColIdx = headers.indexOf('kluster');
       const idColIdx = headers.indexOf('id');
       const kodeColIdx = headers.indexOf('kode_aset');
-      const geomTypeIdx = headers.indexOf('geom_type');
-      const geomJsonIdx = headers.indexOf('geometry_json');
-      const lokasiIdx = headers.indexOf('lokasi');
       const rows = [];
       for (var i = 1; i < data.length; i++) {
         var row = data[i];
         if (row.some(function(c){ return c !== ''; })) {
-          var rawGeom = String(row[geomJsonIdx] || '');
-          var parsedGeom = null;
-          var geomError = null;
-          try {
-            parsedGeom = rawGeom ? JSON.parse(rawGeom) : null;
-          } catch(e) {
-            geomError = String(e);
-          }
           rows.push({
             sheetRow: i + 1,
             id: String(row[idColIdx] || ''),
             kode_aset: String(row[kodeColIdx] || ''),
-            lokasi: String(row[lokasiIdx] || ''),
-            kluster: String(row[klusterColIdx] || ''),
-            geom_type: String(row[geomTypeIdx] || ''),
-            has_geom: !!parsedGeom,
-            geom_error: geomError,
-            geom_summary: parsedGeom ? (parsedGeom.type + ' (' + (parsedGeom.coordinates ? parsedGeom.coordinates.length : 0) + ' items)') : 'NO_GEOMETRY'
+            kluster: String(row[klusterColIdx] || '')
           });
         }
       }
-      return jsonResponse_({ ok: true, totalRows: rows.length, rows: rows });
+      return jsonResponse_({ ok: true, totalRows: rows.length, klusterColLetter: String.fromCharCode(65+klusterColIdx), rows: rows });
     }
 
     if (action === 'getAset') {

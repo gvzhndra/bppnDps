@@ -1,5 +1,5 @@
-function newId(){
-  return "A" + Date.now() + Math.floor(Math.random()*1000);
+function newId() {
+  return "A" + Date.now() + Math.floor(Math.random() * 1000);
 }
 
 function getNormalizedAsalAset(val) {
@@ -9,18 +9,18 @@ function getNormalizedAsalAset(val) {
 }
 
 function getLuasTanah(props) {
-  if(!props) return 0;
-  if(props.luas_tanah !== undefined && props.luas_tanah !== null && props.luas_tanah !== '') return Number(props.luas_tanah) || 0;
-  if(props['Luas Tanah'] !== undefined && props['Luas Tanah'] !== null && props['Luas Tanah'] !== '') return Number(props['Luas Tanah']) || 0;
-  if(props.luas !== undefined && props.luas !== null && props.luas !== '') return Number(props.luas) || 0;
-  if(props['Luas'] !== undefined && props['Luas'] !== null && props['Luas'] !== '') return Number(props['Luas']) || 0;
+  if (!props) return 0;
+  if (props.luas_tanah !== undefined && props.luas_tanah !== null && props.luas_tanah !== '') return Number(props.luas_tanah) || 0;
+  if (props['Luas Tanah'] !== undefined && props['Luas Tanah'] !== null && props['Luas Tanah'] !== '') return Number(props['Luas Tanah']) || 0;
+  if (props.luas !== undefined && props.luas !== null && props.luas !== '') return Number(props.luas) || 0;
+  if (props['Luas'] !== undefined && props['Luas'] !== null && props['Luas'] !== '') return Number(props['Luas']) || 0;
   return 0;
 }
 
 function getLuasBangunan(props) {
-  if(!props) return 0;
-  if(props.luas_bangunan !== undefined && props.luas_bangunan !== null && props.luas_bangunan !== '') return Number(props.luas_bangunan) || 0;
-  if(props['Luas Bangunan'] !== undefined && props['Luas Bangunan'] !== null && props['Luas Bangunan'] !== '') return Number(props['Luas Bangunan']) || 0;
+  if (!props) return 0;
+  if (props.luas_bangunan !== undefined && props.luas_bangunan !== null && props.luas_bangunan !== '') return Number(props.luas_bangunan) || 0;
+  if (props['Luas Bangunan'] !== undefined && props['Luas Bangunan'] !== null && props['Luas Bangunan'] !== '') return Number(props['Luas Bangunan']) || 0;
   return 0;
 }
 
@@ -39,53 +39,53 @@ function isMobileOrTablet() {
   return isMobileUA || (hasTouch && window.innerWidth <= 1024);
 }
 
-function geometryToInternal(geomType, geometry){
-  if(!geometry) return geomType === "point" ? [0, 0] : [];
-  if(geomType === "point"){
-    if(geometry.coordinates && geometry.coordinates.length >= 2){
+function geometryToInternal(geomType, geometry) {
+  if (!geometry) return geomType === "point" ? [0, 0] : [];
+  if (geomType === "point") {
+    if (geometry.coordinates && geometry.coordinates.length >= 2) {
       const lng = Number(geometry.coordinates[0]);
       const lat = Number(geometry.coordinates[1]);
-      if(!isNaN(lat) && !isNaN(lng) && !(lat === 0 && lng === 0)){
+      if (!isNaN(lat) && !isNaN(lng) && !(lat === 0 && lng === 0)) {
         return [lat, lng];
       }
     }
     return [0, 0];
   }
-  if(geometry.type === "Polygon" && geometry.coordinates && geometry.coordinates[0]){
+  if (geometry.type === "Polygon" && geometry.coordinates && geometry.coordinates[0]) {
     return geometry.coordinates[0].map(c => [Number(c[1]), Number(c[0])]);
   }
-  if(geometry.type === "MultiPolygon" && geometry.coordinates && geometry.coordinates[0] && geometry.coordinates[0][0]){
+  if (geometry.type === "MultiPolygon" && geometry.coordinates && geometry.coordinates[0] && geometry.coordinates[0][0]) {
     return geometry.coordinates[0][0].map(c => [Number(c[1]), Number(c[0])]);
   }
   return [];
 }
 
-function internalToGeometry(a){
-  if(a.geomType === "point"){
-    return { type:"Point", coordinates:[Number(a.point[1]), Number(a.point[0])] };
+function internalToGeometry(a) {
+  if (a.geomType === "point") {
+    return { type: "Point", coordinates: [Number(a.point[1]), Number(a.point[0])] };
   }
-  return { type:"Polygon", coordinates:[a.coords.map(c => [Number(c[1]), Number(c[0])])] };
+  return { type: "Polygon", coordinates: [a.coords.map(c => [Number(c[1]), Number(c[0])])] };
 }
 
-function isValidPoint(point){
-  if(!point || !Array.isArray(point) || point.length < 2) return false;
+function isValidPoint(point) {
+  if (!point || !Array.isArray(point) || point.length < 2) return false;
   const lat = Number(point[0]), lng = Number(point[1]);
-  if(isNaN(lat) || isNaN(lng)) return false;
+  if (isNaN(lat) || isNaN(lng)) return false;
   return !(lat === 0 && lng === 0);
 }
 
-function isValidPolygonCoords(coords){
+function isValidPolygonCoords(coords) {
   return !!coords && Array.isArray(coords) && coords.length >= 3;
 }
 
-function computeCentroid(coordsLatLng){
-  if(!coordsLatLng || coordsLatLng.length < 3){
+function computeCentroid(coordsLatLng) {
+  if (!coordsLatLng || coordsLatLng.length < 3) {
     return coordsLatLng && coordsLatLng[0] ? [Number(coordsLatLng[0][0]), Number(coordsLatLng[0][1])] : [0, 0];
   }
   const pts = coordsLatLng.map(c => [Number(c[1]), Number(c[0])]);
   let area = 0, cx = 0, cy = 0;
   const n = pts.length;
-  for(let i = 0; i < n; i++){
+  for (let i = 0; i < n; i++) {
     const [x0, y0] = pts[i];
     const [x1, y1] = pts[(i + 1) % n];
     const cross = x0 * y1 - x1 * y0;
@@ -94,7 +94,7 @@ function computeCentroid(coordsLatLng){
     cy += (y0 + y1) * cross;
   }
   area = area / 2;
-  if(Math.abs(area) < 1e-12){
+  if (Math.abs(area) < 1e-12) {
     const avgLat = coordsLatLng.reduce((s, c) => s + Number(c[0]), 0) / coordsLatLng.length;
     const avgLng = coordsLatLng.reduce((s, c) => s + Number(c[1]), 0) / coordsLatLng.length;
     return [avgLat, avgLng];
@@ -104,48 +104,48 @@ function computeCentroid(coordsLatLng){
   return [cy, cx];
 }
 
-function parseCoordsFromString(val){
-  if(val === undefined || val === null) return null;
+function parseCoordsFromString(val) {
+  if (val === undefined || val === null) return null;
   const str = String(val).trim();
-  if(!str) return null;
+  if (!str) return null;
   const match = str.match(/([-+]?\d{1,2}\.\d+)\s*[\s,]\s*([-+]?\d{1,3}\.\d+)/);
-  if(match){
+  if (match) {
     const c1 = Number(match[1]), c2 = Number(match[2]);
-    if(!isNaN(c1) && !isNaN(c2) && !(c1 === 0 && c2 === 0)){
-      if(c1 < 15 && c1 > -15 && c2 > 90 && c2 < 150) return [c1, c2];
-      if(c2 < 15 && c2 > -15 && c1 > 90 && c1 < 150) return [c2, c1];
+    if (!isNaN(c1) && !isNaN(c2) && !(c1 === 0 && c2 === 0)) {
+      if (c1 < 15 && c1 > -15 && c2 > 90 && c2 < 150) return [c1, c2];
+      if (c2 < 15 && c2 > -15 && c1 > 90 && c1 < 150) return [c2, c1];
       return [c1, c2];
     }
   }
   return null;
 }
 
-function googleEarthUrl(lat, lng){
+function googleEarthUrl(lat, lng) {
   return `https://earth.google.com/web/@${lat},${lng},500a,35y,0h,0t,0r`;
 }
 
-function googleMapsUrl(lat, lng){
+function googleMapsUrl(lat, lng) {
   return `https://www.google.com/maps?q=${lat},${lng}&t=k`;
 }
 
-function getAssetCoordinates(a){
-  if(!a) return null;
-  if(a.geomType === "polygon" && isValidPolygonCoords(a.coords)){
+function getAssetCoordinates(a) {
+  if (!a) return null;
+  if (a.geomType === "polygon" && isValidPolygonCoords(a.coords)) {
     return computeCentroid(a.coords);
   }
-  if(a.geomType === "point" && isValidPoint(a.point)){
+  if (a.geomType === "point" && isValidPoint(a.point)) {
     return [Number(a.point[0]), Number(a.point[1])];
   }
-  if(a.props){
-    for(const key in a.props){
+  if (a.props) {
+    for (const key in a.props) {
       const parsed = parseCoordsFromString(a.props[key]);
-      if(parsed) return parsed;
+      if (parsed) return parsed;
     }
   }
   return null;
 }
 
-function defaultAssetProps(overrides){
+function defaultAssetProps(overrides) {
   return Object.assign({
     kode_aset: "",
     asal_aset: "Eks BPPN",
@@ -166,12 +166,12 @@ function defaultAssetProps(overrides){
   }, overrides || {});
 }
 
-function statusBadgesHtml(props){
-  let html = `<span class="badge" style="background:${statusColor[props.status]||'#6B7280'}">${escapeHtml(props.status || "-")}</span>`;
-  if(props.status === "Dalam Penitipan" && props.kategori_penitipan){
+function statusBadgesHtml(props) {
+  let html = `<span class="badge" style="background:${statusColor[props.status] || '#6B7280'}">${escapeHtml(props.status || "-")}</span>`;
+  if (props.status === "Dalam Penitipan" && props.kategori_penitipan) {
     const kColor = kategoriColor[props.kategori_penitipan] || '#6B7280';
     let label = escapeHtml(props.kategori_penitipan);
-    if(props.kategori_penitipan === "Lain-lain" && props.keterangan_kategori){
+    if (props.kategori_penitipan === "Lain-lain" && props.keterangan_kategori) {
       label += ` (${escapeHtml(props.keterangan_kategori)})`;
     }
     html += ` <span class="badge" style="background:${kColor}">${label}</span>`;
@@ -180,8 +180,8 @@ function statusBadgesHtml(props){
 }
 
 // Inisialisasi Peta Leaflet
-const map = L.map('map', {scrollWheelZoom:true}).setView([-8.65, 115.22], 11);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {maxZoom:18}).addTo(map);
+const map = L.map('map', { scrollWheelZoom: true }).setView([-8.65, 115.22], 11);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
 
 // Invalidate size agar peta Leaflet menyesuaikan ukuran layar mobile saat load/resize
 window.addEventListener('resize', () => { setTimeout(() => map.invalidateSize(), 200); });
@@ -191,25 +191,25 @@ const drawnItems = new L.FeatureGroup();
 map.addLayer(drawnItems);
 
 const drawControl = new L.Control.Draw({
-  draw: { polygon:true, marker:false, circle:false, circlemarker:false, polyline:false, rectangle:false },
-  edit: { featureGroup: drawnItems, remove:false }
+  draw: { polygon: true, marker: false, circle: false, circlemarker: false, polyline: false, rectangle: false },
+  edit: { featureGroup: drawnItems, remove: false }
 });
 
-map.on(L.Draw.Event.CREATED, function(e){
+map.on(L.Draw.Event.CREATED, function (e) {
   const layer = e.layer;
   const latlngs = layer.getLatLngs()[0].map(p => [p.lat, p.lng]);
   const newAsset = {
     id: newId(),
     geomType: "polygon",
     coords: latlngs,
-    props: defaultAssetProps({ kode_aset:"Kode aset" })
+    props: defaultAssetProps({ kode_aset: "Kode aset" })
   };
   features.push(newAsset);
   renderAll();
   selectAsset(newAsset.id, 'edit');
   persistAsset(newAsset);
   map.removeControl(drawControl);
-  if(btnDraw) btnDraw.textContent = "Gambar poligon baru";
+  if (btnDraw) btnDraw.textContent = "Gambar poligon baru";
   drawing = false;
 });
 
@@ -237,7 +237,7 @@ document.getElementById('btnAddPoint').addEventListener('click', () => {
     id: newId(),
     geomType: "point",
     point: [center.lat, center.lng],
-    props: defaultAssetProps({ kode_aset:"Aset baru (titik)", catatan:"Geometri masih titik perkiraan, belum ada hasil trace." })
+    props: defaultAssetProps({ kode_aset: "Aset baru (titik)", catatan: "Geometri masih titik perkiraan, belum ada hasil trace." })
   };
   features.push(newAsset);
   renderAll();
@@ -256,7 +256,7 @@ document.getElementById('btnExport').addEventListener('click', () => {
         : { type: "Polygon", coordinates: [a.coords.map(c => [c[1], c[0]])] }
     }))
   };
-  const blob = new Blob([JSON.stringify(fc, null, 2)], {type:"application/geo+json"});
+  const blob = new Blob([JSON.stringify(fc, null, 2)], { type: "application/geo+json" });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url; a.download = "aset-eks-bppn-denpasar.geojson";
@@ -264,126 +264,127 @@ document.getElementById('btnExport').addEventListener('click', () => {
   URL.revokeObjectURL(url);
 });
 
-function currentFilterStatus(){
+function currentFilterStatus() {
   const el = document.getElementById('filterStatus');
   return el ? el.value : 'all';
 }
-function currentFilterAsal(){
+function currentFilterAsal() {
   const el = document.getElementById('filterAsal');
   return el ? el.value : 'all';
 }
-function currentSearch(){
+function currentSearch() {
   const el = document.getElementById('search');
   return el ? el.value.toLowerCase() : '';
 }
-function getClusterValue(props){
-  if(!props) return '';
-  if(props.kluster !== undefined && props.kluster !== null && String(props.kluster).trim() !== '') return String(props.kluster).trim();
-  if(props.Kluster !== undefined && props.Kluster !== null && String(props.Kluster).trim() !== '') return String(props.Kluster).trim();
-  if(props['Kluster Aset'] !== undefined && props['Kluster Aset'] !== null && String(props['Kluster Aset']).trim() !== '') return String(props['Kluster Aset']).trim();
-  if(props.kluster_aset !== undefined && props.kluster_aset !== null && String(props.kluster_aset).trim() !== '') return String(props.kluster_aset).trim();
+function getClusterValue(props) {
+  if (!props) return '';
+  if (props.kluster !== undefined && props.kluster !== null && String(props.kluster).trim() !== '') return String(props.kluster).trim();
+  if (props.Kluster !== undefined && props.Kluster !== null && String(props.Kluster).trim() !== '') return String(props.Kluster).trim();
+  if (props['Kluster Aset'] !== undefined && props['Kluster Aset'] !== null && String(props['Kluster Aset']).trim() !== '') return String(props['Kluster Aset']).trim();
+  if (props.kluster_aset !== undefined && props.kluster_aset !== null && String(props.kluster_aset).trim() !== '') return String(props.kluster_aset).trim();
   return '';
 }
 
-function matchesSearch(a, s){
-  if(!s) return true;
-  return (a.props.kode_aset||"").toLowerCase().includes(s)
-    || (a.props.asal_aset||"").toLowerCase().includes(s)
-    || (a.props.lokasi||"").toLowerCase().includes(s)
+function matchesSearch(a, s) {
+  if (!s) return true;
+  return (a.props.kode_aset || "").toLowerCase().includes(s)
+    || (a.props.asal_aset || "").toLowerCase().includes(s)
+    || (a.props.lokasi || "").toLowerCase().includes(s)
     || getClusterValue(a.props).toLowerCase().includes(s)
-    || (a.props.status||"").toLowerCase().includes(s)
-    || (a.props.kategori_penitipan||"").toLowerCase().includes(s)
-    || (a.props.jenis_pemanfaatan||"").toLowerCase().includes(s)
-    || (a.props.jenis_dokumen||"").toLowerCase().includes(s);
+    || (a.props.status || "").toLowerCase().includes(s)
+    || (a.props.kategori_penitipan || "").toLowerCase().includes(s)
+    || (a.props.jenis_pemanfaatan || "").toLowerCase().includes(s)
+    || (a.props.jenis_dokumen || "").toLowerCase().includes(s);
 }
 
 let currentTab = 'kluster'; // Tab default: Kluster Aset
 let specialFilter = null; // null, 'no_coord', atau 'no_poly'
 
-function smoothScrollToTable(){
+function smoothScrollToTable() {
   const el = document.getElementById('tableWrap');
-  if(el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-function switchTab(tabName){
+function switchTab(tabName) {
   currentTab = tabName;
   const tabKluster = document.getElementById('tabKluster');
   const tabSemua = document.getElementById('tabSemua');
   const viewKluster = document.getElementById('viewKluster');
   const viewSemua = document.getElementById('viewSemua');
 
-  if(tabName === 'kluster'){
-    if(tabKluster) tabKluster.classList.add('active');
-    if(tabSemua) tabSemua.classList.remove('active');
-    if(viewKluster) viewKluster.style.display = 'block';
-    if(viewSemua) viewSemua.style.display = 'none';
+  if (tabName === 'kluster') {
+    if (tabKluster) tabKluster.classList.add('active');
+    if (tabSemua) tabSemua.classList.remove('active');
+    if (viewKluster) viewKluster.style.display = 'block';
+    if (viewSemua) viewSemua.style.display = 'none';
   } else {
-    if(tabSemua) tabSemua.classList.add('active');
-    if(tabKluster) tabKluster.classList.remove('active');
-    if(viewSemua) viewSemua.style.display = 'block';
-    if(viewKluster) viewKluster.style.display = 'none';
+    if (tabSemua) tabSemua.classList.add('active');
+    if (tabKluster) tabKluster.classList.remove('active');
+    if (viewSemua) viewSemua.style.display = 'block';
+    if (viewKluster) viewKluster.style.display = 'none';
   }
 }
 
 const filterStatusEl = document.getElementById('filterStatus');
-if(filterStatusEl) filterStatusEl.addEventListener('change', () => { specialFilter = null; currentPage = 1; renderAll(); });
+if (filterStatusEl) filterStatusEl.addEventListener('change', () => { specialFilter = null; currentPage = 1; renderAll(); });
 const filterAsalEl = document.getElementById('filterAsal');
-if(filterAsalEl) filterAsalEl.addEventListener('change', () => { specialFilter = null; currentPage = 1; renderAll(); });
+if (filterAsalEl) filterAsalEl.addEventListener('change', () => { specialFilter = null; currentPage = 1; renderAll(); });
 const searchEl = document.getElementById('search');
-if(searchEl) searchEl.addEventListener('input', () => { specialFilter = null; currentPage = 1; renderAll(); });
+if (searchEl) searchEl.addEventListener('input', () => { specialFilter = null; currentPage = 1; renderAll(); });
 
-function getKategoriPenitipanValue(props){
-  if(!props) return '';
-  if(props.kategori_penitipan !== undefined && props.kategori_penitipan !== null && String(props.kategori_penitipan).trim() !== '') return String(props.kategori_penitipan).trim();
-  if(props.kategori !== undefined && props.kategori !== null && String(props.kategori).trim() !== '') return String(props.kategori).trim();
-  if(props.status_penitipan !== undefined && props.status_penitipan !== null && String(props.status_penitipan).trim() !== '') return String(props.status_penitipan).trim();
-  if(props.status !== undefined && props.status !== null && String(props.status).trim() !== '' && props.status !== 'Dalam Penitipan') return String(props.status).trim();
+function getKategoriPenitipanValue(props) {
+  if (!props) return '';
+  if (props.kategori_penitipan !== undefined && props.kategori_penitipan !== null && String(props.kategori_penitipan).trim() !== '') return String(props.kategori_penitipan).trim();
+  if (props.kategori !== undefined && props.kategori !== null && String(props.kategori).trim() !== '') return String(props.kategori).trim();
+  if (props.status_penitipan !== undefined && props.status_penitipan !== null && String(props.status_penitipan).trim() !== '') return String(props.status_penitipan).trim();
+  if (props.status !== undefined && props.status !== null && String(props.status).trim() !== '' && props.status !== 'Dalam Penitipan') return String(props.status).trim();
   return '';
 }
 
-function visibleFeatures(){
+function visibleFeatures() {
   const fStatus = currentFilterStatus();
   const fAsal = currentFilterAsal();
   const s = currentSearch();
   return features.filter(a => {
-    if(specialFilter === 'no_coord'){
-      if(a.geomType === "point" && isValidPoint(a.point)) return false;
-      if(a.geomType === "polygon" && isValidPolygonCoords(a.coords)) return false;
-    } else if(specialFilter === 'no_poly'){
-      if(a.geomType === "polygon" && isValidPolygonCoords(a.coords)) return false;
+    if (specialFilter === 'no_coord') {
+      if (a.geomType === "point" && isValidPoint(a.point)) return false;
+      if (a.geomType === "polygon" && isValidPolygonCoords(a.coords)) return false;
+    } else if (specialFilter === 'no_poly') {
+      if (a.geomType === "polygon" && isValidPolygonCoords(a.coords)) return false;
     }
-    if(fStatus !== 'all'){
+    if (fStatus !== 'all') {
       const kat = getKategoriPenitipanValue(a.props);
-      if(kat !== fStatus) return false;
+      if (kat !== fStatus) return false;
     }
-    if(fAsal !== 'all'){
-      if(getNormalizedAsalAset(a.props.asal_aset) !== fAsal) return false;
+    if (fAsal !== 'all') {
+      if (getNormalizedAsalAset(a.props.asal_aset) !== fAsal) return false;
     }
-    if(!matchesSearch(a, s)) return false;
+    if (!matchesSearch(a, s)) return false;
     return true;
   });
 }
 
-function getUniqueClusters(){
+function getUniqueClusters(assetList) {
   const set = new Set();
-  features.forEach(a => {
+  const list = assetList || features;
+  list.forEach(a => {
     const k = getClusterValue(a.props);
-    if(k) set.add(k);
+    if (k) set.add(k);
   });
   return Array.from(set).sort();
 }
 
-function groupAssetsByCluster(assetList){
+function groupAssetsByCluster(assetList) {
   const groups = {};
   assetList.forEach(a => {
     const name = getClusterValue(a.props) || 'Tanpa Kluster';
-    if(!groups[name]) groups[name] = [];
+    if (!groups[name]) groups[name] = [];
     groups[name].push(a);
   });
 
   const sortedKeys = Object.keys(groups).sort((x, y) => {
-    if(x === 'Tanpa Kluster') return 1;
-    if(y === 'Tanpa Kluster') return -1;
+    if (x === 'Tanpa Kluster') return 1;
+    if (y === 'Tanpa Kluster') return -1;
     return x.localeCompare(y);
   });
 
@@ -392,14 +393,14 @@ function groupAssetsByCluster(assetList){
   return sortedGroups;
 }
 
-function renderClusterTable(vis){
+function renderClusterTable(vis) {
   const container = document.getElementById('clusterContainer');
-  if(!container) return;
+  if (!container) return;
 
   const groups = groupAssetsByCluster(vis);
   const clusterKeys = Object.keys(groups);
 
-  if(clusterKeys.length === 0){
+  if (clusterKeys.length === 0) {
     container.innerHTML = '<p class="small-note" style="margin:12px 0;">Tidak ada aset yang sesuai dengan kriteria filter.</p>';
     return;
   }
@@ -476,7 +477,7 @@ function renderClusterTable(vis){
 
   container.querySelectorAll('.cluster-header').forEach(header => {
     header.addEventListener('click', (e) => {
-      if(e.target.closest('.btnFocusCluster')) return;
+      if (e.target.closest('.btnFocusCluster')) return;
       const card = header.closest('.cluster-card');
       card.classList.toggle('open');
     });
@@ -489,14 +490,14 @@ function renderClusterTable(vis){
       const clusterAssets = groups[clusterName] || [];
       const bounds = [];
       clusterAssets.forEach(a => {
-        if(a.geomType === 'point' && isValidPoint(a.point)){
+        if (a.geomType === 'point' && isValidPoint(a.point)) {
           bounds.push(a.point);
-        } else if(a.geomType === 'polygon' && isValidPolygonCoords(a.coords)){
+        } else if (a.geomType === 'polygon' && isValidPolygonCoords(a.coords)) {
           a.coords.forEach(c => bounds.push(c));
         }
       });
-      if(bounds.length > 0){
-        map.fitBounds(L.latLngBounds(bounds), {padding:[50,50], maxZoom:16});
+      if (bounds.length > 0) {
+        map.fitBounds(L.latLngBounds(bounds), { padding: [50, 50], maxZoom: 16 });
       } else {
         alert('Tidak ada geometri valid untuk aset dalam kluster ini.');
       }
@@ -514,45 +515,30 @@ function renderClusterTable(vis){
   });
 }
 
-function getPrimaryColor(props){
-  if(props.status === "Dalam Penitipan" && props.kategori_penitipan && kategoriColor[props.kategori_penitipan]){
+function getPrimaryColor(props) {
+  if (props.status === "Dalam Penitipan" && props.kategori_penitipan && kategoriColor[props.kategori_penitipan]) {
     return kategoriColor[props.kategori_penitipan];
   }
   return statusColor[props.status] || "#6B7280";
 }
 
-function renderAll(){
+function renderAll() {
   Object.values(leafletLayers).forEach(l => map.removeLayer(l));
   leafletLayers = {};
   const vis = visibleFeatures();
-
-  // Helper to compute area for z-index ordering (large polygons drawn first, small on top)
-  function getFeatureArea(a){
-    if(a.geomType === "point") return -1; // points always drawn on top
-    if(!isValidPolygonCoords(a.coords)) return 0;
-    // Simple bounding box area approximation
-    const lats = a.coords.map(c => Number(c[0]));
-    const lngs = a.coords.map(c => Number(c[1]));
-    return (Math.max(...lats) - Math.min(...lats)) * (Math.max(...lngs) - Math.min(...lngs));
-  }
-
-  // Sort: Largest polygons first, smaller polygons later, points last (so points/small polygons sit on top)
-  const sortedVis = [...vis].sort((a, b) => getFeatureArea(b) - getFeatureArea(a));
-
-  sortedVis.forEach(a => {
+  vis.forEach(a => {
     const color = getPrimaryColor(a.props);
     let layer;
-    if(a.geomType === "point"){
-      if(isValidPoint(a.point)){
-        layer = L.circleMarker(a.point, {radius:9, color:color, weight:2, fillColor:color, fillOpacity:0.7}).addTo(map);
+    if (a.geomType === "point") {
+      if (isValidPoint(a.point)) {
+        layer = L.circleMarker(a.point, { radius: 9, color: color, weight: 2, fillColor: color, fillOpacity: 0.7 }).addTo(map);
         layer.on('click', () => selectAsset(a.id));
         leafletLayers[a.id] = layer;
       }
     } else {
-      if(isValidPolygonCoords(a.coords)){
-        layer = L.polygon(a.coords, {color:color, weight:2, fillColor:color, fillOpacity:0.35}).addTo(map);
+      if (isValidPolygonCoords(a.coords)) {
+        layer = L.polygon(a.coords, { color: color, weight: 2, fillColor: color, fillOpacity: 0.35 }).addTo(map);
         layer.on('click', () => selectAsset(a.id));
-        layer.on('mouseover', function() { this.bringToFront(); });
         leafletLayers[a.id] = layer;
       }
     }
@@ -562,8 +548,8 @@ function renderAll(){
   tbody.innerHTML = "";
 
   const totalPages = Math.max(1, Math.ceil(vis.length / TABLE_PAGE_SIZE));
-  if(currentPage > totalPages) currentPage = totalPages;
-  if(currentPage < 1) currentPage = 1;
+  if (currentPage > totalPages) currentPage = totalPages;
+  if (currentPage < 1) currentPage = 1;
   const pageStart = (currentPage - 1) * TABLE_PAGE_SIZE;
   const pageItems = vis.slice(pageStart, pageStart + TABLE_PAGE_SIZE);
 
@@ -596,7 +582,7 @@ function renderAll(){
   renderClusterTable(vis);
 
   const belumPunyaKoordinat = vis.filter(a => {
-    if(a.geomType === "point") return !isValidPoint(a.point);
+    if (a.geomType === "point") return !isValidPoint(a.point);
     return !isValidPolygonCoords(a.coords);
   }).length;
   const batasBelumDitemukan = vis.filter(a => a.geomType !== "polygon").length;
@@ -608,31 +594,31 @@ function renderAll(){
   const bermasalahCount = vis.filter(a => getKategoriPenitipanValue(a.props) === "Bermasalah Hukum").length;
   const lainLainCount = vis.filter(a => getKategoriPenitipanValue(a.props) === "Lain-lain").length;
 
-  const totalLuasTanah = vis.reduce((s,a) => s + getLuasTanah(a.props), 0);
-  const totalLuasBangunan = vis.reduce((s,a) => s + getLuasBangunan(a.props), 0);
+  const totalLuasTanah = vis.reduce((s, a) => s + getLuasTanah(a.props), 0);
+  const totalLuasBangunan = vis.reduce((s, a) => s + getLuasBangunan(a.props), 0);
 
   document.getElementById('statTotal').textContent = vis.length;
   const statTotalKlusterEl = document.getElementById('statTotalKluster');
-  if(statTotalKlusterEl) statTotalKlusterEl.textContent = getUniqueClusters().length;
+  if (statTotalKlusterEl) statTotalKlusterEl.textContent = getUniqueClusters(vis).length;
   const statLuasTanahEl = document.getElementById('statLuasTanah');
   const statLuasBangunanEl = document.getElementById('statLuasBangunan');
   const statLuasEl = document.getElementById('statLuas');
-  if(statLuasTanahEl) statLuasTanahEl.textContent = totalLuasTanah.toLocaleString('id-ID');
-  if(statLuasBangunanEl) statLuasBangunanEl.textContent = totalLuasBangunan.toLocaleString('id-ID');
-  if(statLuasEl) statLuasEl.textContent = totalLuasTanah.toLocaleString('id-ID');
+  if (statLuasTanahEl) statLuasTanahEl.textContent = totalLuasTanah.toLocaleString('id-ID');
+  if (statLuasBangunanEl) statLuasBangunanEl.textContent = totalLuasBangunan.toLocaleString('id-ID');
+  if (statLuasEl) statLuasEl.textContent = totalLuasTanah.toLocaleString('id-ID');
   document.getElementById('statTitik').textContent = belumPunyaKoordinat;
   document.getElementById('statPolygon').textContent = batasBelumDitemukan;
   const statSudahEl = document.getElementById('statSudahDimanfaatkan');
-  if(statSudahEl) statSudahEl.textContent = sudahDimanfaatkanCount;
+  if (statSudahEl) statSudahEl.textContent = sudahDimanfaatkanCount;
   document.getElementById('statBelumDimanfaatkan').textContent = belumDimanfaatkanCount;
   document.getElementById('statBermasalah').textContent = bermasalahCount;
   document.getElementById('statBerakhir').textContent = lainLainCount;
 }
 
-function renderPagination(totalItems, totalPages){
+function renderPagination(totalItems, totalPages) {
   const container = document.getElementById('pagination');
-  if(!container) return;
-  if(totalItems === 0){
+  if (!container) return;
+  if (totalItems === 0) {
     container.innerHTML = '';
     return;
   }
@@ -648,52 +634,52 @@ function renderPagination(totalItems, totalPages){
   `;
   const btnPrev = document.getElementById('btnPrevPage');
   const btnNext = document.getElementById('btnNextPage');
-  if(btnPrev) btnPrev.addEventListener('click', () => { currentPage--; renderAll(); });
-  if(btnNext) btnNext.addEventListener('click', () => { currentPage++; renderAll(); });
+  if (btnPrev) btnPrev.addEventListener('click', () => { currentPage--; renderAll(); });
+  if (btnNext) btnNext.addEventListener('click', () => { currentPage++; renderAll(); });
 }
 
-function escapeHtml(str){
-  return String(str||'').replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+function escapeHtml(str) {
+  return String(str || '').replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 }
 
 let panelMode = 'view';
 
-function getAssetCoordinates(a){
-  if(!a) return null;
-  if(a.geomType === "point" && isValidPoint(a.point)){
+function getAssetCoordinates(a) {
+  if (!a) return null;
+  if (a.geomType === "point" && isValidPoint(a.point)) {
     return [Number(a.point[0]), Number(a.point[1])];
   }
-  if(a.geomType === "polygon" && isValidPolygonCoords(a.coords)){
+  if (a.geomType === "polygon" && isValidPolygonCoords(a.coords)) {
     return computeCentroid(a.coords);
   }
-  if(a.props){
+  if (a.props) {
     const lat = Number(a.props.latitude || a.props.lat);
     const lng = Number(a.props.longitude || a.props.lng || a.props.long);
-    if(!isNaN(lat) && !isNaN(lng) && !(lat === 0 && lng === 0)){
+    if (!isNaN(lat) && !isNaN(lng) && !(lat === 0 && lng === 0)) {
       return [lat, lng];
     }
   }
   return null;
 }
 
-function selectAsset(id, mode){
+function selectAsset(id, mode) {
   selectedId = id;
   panelMode = mode || 'view';
   const a = features.find(x => x.id === id);
-  if(!a) return;
+  if (!a) return;
   const layer = leafletLayers[id];
-  if(layer){
-    if(a.geomType === "point"){ if(isValidPoint(a.point)) map.setView(a.point, Math.max(map.getZoom(), 15)); }
-    else if(isValidPolygonCoords(a.coords)) map.fitBounds(layer.getBounds(), {maxZoom:16});
+  if (layer) {
+    if (a.geomType === "point") { if (isValidPoint(a.point)) map.setView(a.point, Math.max(map.getZoom(), 15)); }
+    else if (isValidPolygonCoords(a.coords)) map.fitBounds(layer.getBounds(), { maxZoom: 16 });
   }
-  if(panelMode === 'edit') renderEditPanel(a);
+  if (panelMode === 'edit') renderEditPanel(a);
   else renderViewPanel(a);
 
   const panel = document.getElementById('sidePanel');
-  if(panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  if (panel) panel.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
-function renderViewPanel(a){
+function renderViewPanel(a) {
   const extraKeys = sheetHeaders.filter(h => RESERVED_COLUMNS.indexOf(h) === -1 && CORE_PROPS.indexOf(h) === -1);
   const extraSection = extraKeys.length ? `
     <div class="field" style="border-top:1px dashed var(--border);padding-top:10px;margin-top:10px;">
@@ -707,9 +693,9 @@ function renderViewPanel(a){
   const geomInfo = a.geomType === "point"
     ? (isValidPoint(a.point) ? `Titik (${Number(a.point[0]).toFixed(6)}, ${Number(a.point[1]).toFixed(6)})` : `Titik — belum ada koordinat`)
     : (isValidPolygonCoords(a.coords) ? (() => {
-        const c = computeCentroid(a.coords);
-        return `Poligon (${a.coords.length} titik) — titik tengah: ${c[0].toFixed(6)}, ${c[1].toFixed(6)}`;
-      })() : `Poligon — belum ada koordinat`);
+      const c = computeCentroid(a.coords);
+      return `Poligon (${a.coords.length} titik) — titik tengah: ${c[0].toFixed(6)}, ${c[1].toFixed(6)}`;
+    })() : `Poligon — belum ada koordinat`);
 
   const refCoords = getAssetCoordinates(a);
   const earthUrl = refCoords ? googleEarthUrl(refCoords[0], refCoords[1]) : null;
@@ -796,38 +782,38 @@ function renderViewPanel(a){
   document.getElementById('foto-input').addEventListener('change', async (e) => {
     const file = e.target.files && e.target.files[0];
     e.target.value = '';
-    if(!file) return;
-    try{
+    if (!file) return;
+    try {
       showLoading('Mengekstrak geotag & memproses foto...');
       const base64 = await compressImageToBase64(file, 1600);
       let lat, lng, sumber_tag;
 
       // 1. Coba baca Geotag EXIF dari file foto HP
       const exifGps = await getExifLocation(file);
-      if(exifGps){
+      if (exifGps) {
         lat = exifGps[0]; lng = exifGps[1]; sumber_tag = "exif_foto";
-      } else if(a.geomType === "polygon" && isValidPolygonCoords(a.coords)){
+      } else if (a.geomType === "polygon" && isValidPolygonCoords(a.coords)) {
         const c = computeCentroid(a.coords);
         lat = c[0]; lng = c[1]; sumber_tag = "centroid";
       } else {
         const gps = await getDeviceLocation();
-        if(gps){ lat = gps[0]; lng = gps[1]; sumber_tag = "gps_hp"; }
-        else if(isValidPoint(a.point)){ lat = a.point[0]; lng = a.point[1]; sumber_tag = "titik_aset"; }
+        if (gps) { lat = gps[0]; lng = gps[1]; sumber_tag = "gps_hp"; }
+        else if (isValidPoint(a.point)) { lat = a.point[0]; lng = a.point[1]; sumber_tag = "titik_aset"; }
         else { lat = ''; lng = ''; sumber_tag = "tidak_diketahui"; }
       }
       hideLoading();
       const res = await addPhoto({ asset_id: a.id, base64, mimeType: file.type || 'image/jpeg', lat, lng, sumber_tag });
-      if(res) loadAndRenderPhotos(a.id);
-    } catch(err){
+      if (res) loadAndRenderPhotos(a.id);
+    } catch (err) {
       hideLoading();
       alert('Gagal memproses foto: ' + err);
     }
   });
 
-  if(isAdmin()){
+  if (isAdmin()) {
     document.getElementById('btnEditAsset').addEventListener('click', () => selectAsset(a.id, 'edit'));
     document.getElementById('btnDeleteAsset').addEventListener('click', () => {
-      if(confirm('Hapus aset ini?')){
+      if (confirm('Hapus aset ini?')) {
         features = features.filter(x => x.id !== a.id);
         document.getElementById('sidePanel').innerHTML = '<div class="empty-hint">Belum ada aset yang dipilih.<br><br>Pilih salah satu aset pada tabel di bawah.</div>';
         renderAll();
@@ -854,12 +840,12 @@ function renderViewPanel(a){
       const no_dokumen = document.getElementById('hist-no_dokumen').value.trim();
       const tanggal = document.getElementById('hist-tanggal').value;
       const jenis_dokumen = document.getElementById('hist-jenis').value.trim();
-      if(!no_dokumen || !tanggal){
+      if (!no_dokumen || !tanggal) {
         alert('No. Dokumen dan Tanggal wajib diisi.');
         return;
       }
       const res = await addHistoryEntry({ asset_id: a.id, no_dokumen, tanggal, jenis_dokumen });
-      if(res){
+      if (res) {
         document.getElementById('hist-no_dokumen').value = '';
         document.getElementById('hist-tanggal').value = '';
         document.getElementById('hist-jenis').value = '';
@@ -873,15 +859,15 @@ function renderViewPanel(a){
 }
 
 // Kompresi foto lokal ke canvas JPEG base64
-function compressImageToBase64(file, maxDim = 1600){
+function compressImageToBase64(file, maxDim = 1600) {
   return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onload = (e) => {
       const img = new Image();
       img.onload = () => {
         let w = img.width, h = img.height;
-        if(w > maxDim || h > maxDim){
-          if(w > h){ h = Math.round(h * maxDim / w); w = maxDim; }
+        if (w > maxDim || h > maxDim) {
+          if (w > h) { h = Math.round(h * maxDim / w); w = maxDim; }
           else { w = Math.round(w * maxDim / h); h = maxDim; }
         }
         const canvas = document.createElement('canvas');
@@ -905,7 +891,7 @@ async function getExifLocation(file) {
       return resolve(null);
     }
     const reader = new FileReader();
-    reader.onload = function(e) {
+    reader.onload = function (e) {
       try {
         const view = new DataView(e.target.result);
         if (view.getUint16(0, false) !== 0xFFD8) return resolve(null);
@@ -974,24 +960,24 @@ function readGpsCoord(view, gpsOffset, tagCoord, tagRef, littleEndian) {
 }
 
 // Ambil lokasi GPS dari browser HP
-function getDeviceLocation(){
+function getDeviceLocation() {
   return new Promise(resolve => {
-    if(!navigator.geolocation) return resolve(null);
+    if (!navigator.geolocation) return resolve(null);
     navigator.geolocation.getCurrentPosition(
       pos => resolve([pos.coords.latitude, pos.coords.longitude]),
       () => resolve(null),
-      { enableHighAccuracy:true, timeout:6000, maximumAge:0 }
+      { enableHighAccuracy: true, timeout: 6000, maximumAge: 0 }
     );
   });
 }
 
-async function loadAndRenderPhotos(assetId){
+async function loadAndRenderPhotos(assetId) {
   const container = document.getElementById('fotoGallery');
-  if(!container) return;
+  if (!container) return;
   const photos = await fetchPhotos(assetId);
   const stillOpen = document.getElementById('fotoGallery');
-  if(!stillOpen) return;
-  if(!photos.length){
+  if (!stillOpen) return;
+  if (!photos.length) {
     stillOpen.innerHTML = '<p class="small-note" style="margin:0;">Belum ada foto lapangan.</p>';
     return;
   }
@@ -1016,29 +1002,29 @@ async function loadAndRenderPhotos(assetId){
     </div>
   `).join('')}</div>`;
 
-  if(isAdmin()){
+  if (isAdmin()) {
     stillOpen.querySelectorAll('.btnDeleteFoto').forEach(btn => {
       btn.addEventListener('click', async () => {
-        if(confirm('Hapus foto ini?')){
+        if (confirm('Hapus foto ini?')) {
           const ok = await deletePhoto(btn.dataset.id);
-          if(ok) loadAndRenderPhotos(assetId);
+          if (ok) loadAndRenderPhotos(assetId);
         }
       });
     });
   }
 }
 
-async function loadAndRenderHistory(assetId){
+async function loadAndRenderHistory(assetId) {
   const container = document.getElementById('historyList');
-  if(!container) return;
+  if (!container) return;
   const history = await fetchHistory(assetId);
   const stillOpen = document.getElementById('historyList');
-  if(!stillOpen) return;
-  if(!history.length){
+  if (!stillOpen) return;
+  if (!history.length) {
     stillOpen.innerHTML = '<p class="small-note" style="margin:0;">Belum ada riwayat dokumen.</p>';
     return;
   }
-  const sorted = history.slice().sort((x,y) => new Date(x.tanggal) - new Date(y.tanggal));
+  const sorted = history.slice().sort((x, y) => new Date(x.tanggal) - new Date(y.tanggal));
   stillOpen.innerHTML = sorted.map(h => `
     <div class="history-item" data-hist-id="${h.id}">
       <div class="history-main">
@@ -1050,19 +1036,19 @@ async function loadAndRenderHistory(assetId){
     </div>
   `).join('');
 
-  if(isAdmin()){
+  if (isAdmin()) {
     stillOpen.querySelectorAll('.btnDeleteHistory').forEach(btn => {
       btn.addEventListener('click', async () => {
-        if(confirm('Hapus entri riwayat ini?')){
+        if (confirm('Hapus entri riwayat ini?')) {
           const ok = await deleteHistoryEntry(btn.dataset.id);
-          if(ok) loadAndRenderHistory(assetId);
+          if (ok) loadAndRenderHistory(assetId);
         }
       });
     });
   }
 }
 
-function renderEditPanel(a){
+function renderEditPanel(a) {
   const geojsonBox = `
     <div class="field" style="background:#F7F9FA;border:1px dashed var(--border);border-radius:6px;padding:10px;">
       <label style="margin-bottom:6px;">${a.geomType === "point" ? "Sudah ada hasil trace GeoJSON untuk aset ini? Tempel di sini:" : "Mau ganti bentuk poligon? Tempel GeoJSON baru di sini:"}</label>
@@ -1080,9 +1066,9 @@ function renderEditPanel(a){
     </div>
     ${geojsonBox}
   ` : (() => {
-      const c = computeCentroid(a.coords);
-      return `<div class="field"><p class="small-note">Geometri: poligon (${a.coords.length} titik), titik tengah (centroid) otomatis: <strong>${c[0].toFixed(6)}, ${c[1].toFixed(6)}</strong>.</p></div>${geojsonBox}`;
-    })();
+    const c = computeCentroid(a.coords);
+    return `<div class="field"><p class="small-note">Geometri: poligon (${a.coords.length} titik), titik tengah (centroid) otomatis: <strong>${c[0].toFixed(6)}, ${c[1].toFixed(6)}</strong>.</p></div>${geojsonBox}`;
+  })();
 
   const extraKeys = sheetHeaders.filter(h => RESERVED_COLUMNS.indexOf(h) === -1 && CORE_PROPS.indexOf(h) === -1);
   const extraSection = extraKeys.length ? `
@@ -1104,7 +1090,7 @@ function renderEditPanel(a){
     <div class="field"><label>Kode aset</label><input type="text" id="f-kode_aset" value="${escapeHtml(a.props.kode_aset || "")}"></div>
     <div class="field"><label>Asal aset</label>
       <select id="f-asal_aset">
-        ${ASAL_ASET_OPTIONS.map(o => `<option value="${o}" ${o===currentAsal?'selected':''}>${o}</option>`).join('')}
+        ${ASAL_ASET_OPTIONS.map(o => `<option value="${o}" ${o === currentAsal ? 'selected' : ''}>${o}</option>`).join('')}
       </select>
     </div>
     <div class="field"><label>Lokasi</label><input type="text" id="f-lokasi" value="${escapeHtml(a.props.lokasi || "")}"></div>
@@ -1120,13 +1106,13 @@ function renderEditPanel(a){
     </div>
     <div class="field"><label>Status</label>
       <select id="f-status">
-        ${STATUS_OPTIONS.map(s => `<option value="${s}" ${s===a.props.status?'selected':''}>${s}</option>`).join('')}
+        ${STATUS_OPTIONS.map(s => `<option value="${s}" ${s === a.props.status ? 'selected' : ''}>${s}</option>`).join('')}
       </select>
     </div>
     <div class="field" id="wrap-kategori" style="display:none;">
       <label>Kategori</label>
       <select id="f-kategori_penitipan">
-        ${KATEGORI_OPTIONS.map(k => `<option value="${k}" ${k===a.props.kategori_penitipan?'selected':''}>${k}</option>`).join('')}
+        ${KATEGORI_OPTIONS.map(k => `<option value="${k}" ${k === a.props.kategori_penitipan ? 'selected' : ''}>${k}</option>`).join('')}
       </select>
     </div>
     <div class="field" id="wrap-keterangan_kategori" style="display:none;">
@@ -1155,7 +1141,7 @@ function renderEditPanel(a){
     </div>
   `;
 
-  function updateConditionalFields(){
+  function updateConditionalFields() {
     const status = document.getElementById('f-status').value;
     const wrapKategori = document.getElementById('wrap-kategori');
     const wrapKeterangan = document.getElementById('wrap-keterangan_kategori');
@@ -1173,8 +1159,8 @@ function renderEditPanel(a){
     a.props.lokasi = document.getElementById('f-lokasi').value;
     const klusterVal = document.getElementById('f-kluster').value.trim();
     // Sync all possible cluster key variants so backend finds the right one
-    ['kluster','Kluster','kluster_aset','Kluster Aset','cluster','Cluster','cluster_aset','Cluster Aset'].forEach(function(k){
-      if(a.props[k] !== undefined) a.props[k] = klusterVal;
+    ['kluster', 'Kluster', 'kluster_aset', 'Kluster Aset', 'cluster', 'Cluster', 'cluster_aset', 'Cluster Aset'].forEach(function (k) {
+      if (a.props[k] !== undefined) a.props[k] = klusterVal;
     });
     a.props.kluster = klusterVal; // always set canonical key
     a.props.luas_tanah = Number(document.getElementById('f-luas_tanah').value) || 0;
@@ -1190,16 +1176,16 @@ function renderEditPanel(a){
     a.props.catatan = document.getElementById('f-catatan').value;
     a.props.link_folder = document.getElementById('f-link_folder').value;
     document.querySelectorAll('.f-extra').forEach(inp => { a.props[inp.dataset.key] = inp.value; });
-    if(a.geomType === "point"){
+    if (a.geomType === "point") {
       const latInput = document.getElementById('f-lat');
       const lngInput = document.getElementById('f-lng');
-      if(latInput && lngInput){
+      if (latInput && lngInput) {
         const latRaw = latInput.value.trim();
         const lngRaw = lngInput.value.trim();
-        if(latRaw !== '' && lngRaw !== ''){
+        if (latRaw !== '' && lngRaw !== '') {
           const lat = Number(latRaw);
           const lng = Number(lngRaw);
-          if(!isNaN(lat) && !isNaN(lng)){
+          if (!isNaN(lat) && !isNaN(lng)) {
             a.point = [lat, lng];
           } else {
             a.point = [0, 0];
@@ -1232,34 +1218,34 @@ function renderEditPanel(a){
 
   document.getElementById('btnApplyGeojson').addEventListener('click', () => {
     const raw = document.getElementById('f-geojson').value.trim();
-    if(!raw) return;
-    try{
+    if (!raw) return;
+    try {
       const gj = JSON.parse(raw);
       let feature = null;
       let geom;
-      if(gj.type === "FeatureCollection"){
-        if(!gj.features || !gj.features.length){
+      if (gj.type === "FeatureCollection") {
+        if (!gj.features || !gj.features.length) {
           alert("FeatureCollection tidak berisi feature apa pun.");
           return;
         }
         feature = gj.features[0];
         geom = feature.geometry;
-      } else if(gj.type === "Feature"){
+      } else if (gj.type === "Feature") {
         feature = gj;
         geom = gj.geometry;
       } else {
         geom = gj;
       }
       let coords = [];
-      if(geom.type === "Polygon"){
+      if (geom.type === "Polygon") {
         coords = geom.coordinates[0].map(c => [c[1], c[0]]);
-      } else if(geom.type === "MultiPolygon"){
+      } else if (geom.type === "MultiPolygon") {
         coords = geom.coordinates[0][0].map(c => [c[1], c[0]]);
-      } else if(geom.type === "LineString" || geom.type === "MultiLineString"){
+      } else if (geom.type === "LineString" || geom.type === "MultiLineString") {
         let line = geom.type === "MultiLineString" ? geom.coordinates[0] : geom.coordinates;
         line = line.slice();
         const first = line[0], last = line[line.length - 1];
-        if(first[0] !== last[0] || first[1] !== last[1]){
+        if (first[0] !== last[0] || first[1] !== last[1]) {
           line.push(first);
         }
         coords = line.map(c => [c[1], c[0]]);
@@ -1270,58 +1256,58 @@ function renderEditPanel(a){
       a.geomType = "polygon";
       a.coords = coords;
       delete a.point;
-      if(feature && feature.properties){
+      if (feature && feature.properties) {
         const p = feature.properties;
-        if(p.luas_tanah || p.luas || p.area) {
+        if (p.luas_tanah || p.luas || p.area) {
           a.props.luas_tanah = p.luas_tanah || p.luas || p.area;
           a.props.luas = a.props.luas_tanah;
         }
-        if(p.luas_bangunan) a.props.luas_bangunan = p.luas_bangunan;
+        if (p.luas_bangunan) a.props.luas_bangunan = p.luas_bangunan;
       }
       renderAll();
       selectAsset(a.id, 'edit');
       persistAsset(a);
-    } catch(e){
+    } catch (e) {
       alert("GeoJSON tidak valid: " + e.message);
     }
   });
 }
 
-function renderUserBadge(){
+function renderUserBadge() {
   const session = getSession();
   const userInfo = document.getElementById('userInfo');
   const btnLogout = document.getElementById('btnLogout');
-  if(!session){
-    if(userInfo) userInfo.textContent = '';
-    if(btnLogout) btnLogout.style.display = 'none';
+  if (!session) {
+    if (userInfo) userInfo.textContent = '';
+    if (btnLogout) btnLogout.style.display = 'none';
     return;
   }
-  if(userInfo) userInfo.textContent = "Halo, " + (session.nama || session.username) + "! (" + (session.role === ROLES.ADMIN ? "admin" : "viewer") + ")";
-  if(btnLogout) btnLogout.style.display = 'inline-block';
+  if (userInfo) userInfo.textContent = "Halo, " + (session.nama || session.username) + "! (" + (session.role === ROLES.ADMIN ? "admin" : "viewer") + ")";
+  if (btnLogout) btnLogout.style.display = 'inline-block';
 }
 
-function applyRoleUI(){
+function applyRoleUI() {
   const admin = isAdmin();
   const addBtn = document.getElementById('btnAddPoint');
-  if(addBtn) addBtn.style.display = admin ? '' : 'none';
-  if(btnDraw) btnDraw.style.display = admin ? '' : 'none';
+  if (addBtn) addBtn.style.display = admin ? '' : 'none';
+  if (btnDraw) btnDraw.style.display = admin ? '' : 'none';
   const hint = document.getElementById('hintTambahAset');
-  if(hint) hint.style.display = admin ? '' : 'none';
+  if (hint) hint.style.display = admin ? '' : 'none';
   const exportBtn = document.getElementById('btnExportSheets');
-  if(exportBtn) exportBtn.style.display = admin ? '' : 'none';
+  if (exportBtn) exportBtn.style.display = admin ? '' : 'none';
 }
 
 const btnExportSheets = document.getElementById('btnExportSheets');
-if(btnExportSheets){
+if (btnExportSheets) {
   btnExportSheets.addEventListener('click', async () => {
-    if(!isAdmin()) return;
-    if(!confirm('Unduh data (Aset & Riwayat) sebagai file Excel?')) return;
+    if (!isAdmin()) return;
+    if (!confirm('Unduh data (Aset & Riwayat) sebagai file Excel?')) return;
     await exportToExcel();
   });
 }
 
 const btnBurger = document.getElementById('btnBurger');
-if(btnBurger){
+if (btnBurger) {
   btnBurger.addEventListener('click', (e) => {
     e.stopPropagation();
     document.getElementById('headerActions').classList.toggle('open');
@@ -1330,19 +1316,19 @@ if(btnBurger){
 document.addEventListener('click', (e) => {
   const actions = document.getElementById('headerActions');
   const burger = document.getElementById('btnBurger');
-  if(actions && actions.classList.contains('open') && !actions.contains(e.target) && e.target !== burger){
+  if (actions && actions.classList.contains('open') && !actions.contains(e.target) && e.target !== burger) {
     actions.classList.remove('open');
   }
 });
 const headerActions = document.getElementById('headerActions');
-if(headerActions){
+if (headerActions) {
   headerActions.addEventListener('click', (e) => {
-    if(e.target.tagName === 'BUTTON') document.getElementById('headerActions').classList.remove('open');
+    if (e.target.tagName === 'BUTTON') document.getElementById('headerActions').classList.remove('open');
   });
 }
 
 const btnLogout = document.getElementById('btnLogout');
-if(btnLogout){
+if (btnLogout) {
   btnLogout.addEventListener('click', () => {
     clearSession();
     window.location.href = 'login.html';
@@ -1350,7 +1336,7 @@ if(btnLogout){
 }
 
 const btnRefresh = document.getElementById('btnRefresh');
-if(btnRefresh){
+if (btnRefresh) {
   btnRefresh.addEventListener('click', () => {
     loadFromServer();
   });
@@ -1358,34 +1344,34 @@ if(btnRefresh){
 
 // Event listeners for Table Tabs
 const tabKlusterEl = document.getElementById('tabKluster');
-if(tabKlusterEl) tabKlusterEl.addEventListener('click', () => switchTab('kluster'));
+if (tabKlusterEl) tabKlusterEl.addEventListener('click', () => switchTab('kluster'));
 const tabSemuaEl = document.getElementById('tabSemua');
-if(tabSemuaEl) tabSemuaEl.addEventListener('click', () => switchTab('semua'));
+if (tabSemuaEl) tabSemuaEl.addEventListener('click', () => switchTab('semua'));
 
 // Event listeners for Interactive Stat Cards
 const cardTotalAsetEl = document.getElementById('cardTotalAset');
-if(cardTotalAsetEl) cardTotalAsetEl.addEventListener('click', () => { specialFilter = null; const sel = document.getElementById('filterStatus'); if(sel) sel.value = 'all'; switchTab('semua'); renderAll(); smoothScrollToTable(); });
+if (cardTotalAsetEl) cardTotalAsetEl.addEventListener('click', () => { specialFilter = null; const sel = document.getElementById('filterStatus'); if (sel) sel.value = 'all'; switchTab('semua'); renderAll(); smoothScrollToTable(); });
 
 const cardTotalKlusterEl = document.getElementById('cardTotalKluster');
-if(cardTotalKlusterEl) cardTotalKlusterEl.addEventListener('click', () => { switchTab('kluster'); smoothScrollToTable(); });
+if (cardTotalKlusterEl) cardTotalKlusterEl.addEventListener('click', () => { switchTab('kluster'); smoothScrollToTable(); });
 
 const cardSudahEl = document.getElementById('cardSudahDimanfaatkan');
-if(cardSudahEl) cardSudahEl.addEventListener('click', () => { specialFilter = null; const sel = document.getElementById('filterStatus'); if(sel) sel.value = 'Sudah Dimanfaatkan'; switchTab('semua'); renderAll(); smoothScrollToTable(); });
+if (cardSudahEl) cardSudahEl.addEventListener('click', () => { specialFilter = null; const sel = document.getElementById('filterStatus'); if (sel) sel.value = 'Sudah Dimanfaatkan'; switchTab('semua'); renderAll(); smoothScrollToTable(); });
 
 const cardBelumEl = document.getElementById('cardBelumDimanfaatkan');
-if(cardBelumEl) cardBelumEl.addEventListener('click', () => { specialFilter = null; const sel = document.getElementById('filterStatus'); if(sel) sel.value = 'Belum Dimanfaatkan'; switchTab('semua'); renderAll(); smoothScrollToTable(); });
+if (cardBelumEl) cardBelumEl.addEventListener('click', () => { specialFilter = null; const sel = document.getElementById('filterStatus'); if (sel) sel.value = 'Belum Dimanfaatkan'; switchTab('semua'); renderAll(); smoothScrollToTable(); });
 
 const cardBermasalahEl = document.getElementById('cardBermasalah');
-if(cardBermasalahEl) cardBermasalahEl.addEventListener('click', () => { specialFilter = null; const sel = document.getElementById('filterStatus'); if(sel) sel.value = 'Bermasalah Hukum'; switchTab('semua'); renderAll(); smoothScrollToTable(); });
+if (cardBermasalahEl) cardBermasalahEl.addEventListener('click', () => { specialFilter = null; const sel = document.getElementById('filterStatus'); if (sel) sel.value = 'Bermasalah Hukum'; switchTab('semua'); renderAll(); smoothScrollToTable(); });
 
 const cardBerakhirEl = document.getElementById('cardBerakhir');
-if(cardBerakhirEl) cardBerakhirEl.addEventListener('click', () => { specialFilter = null; const sel = document.getElementById('filterStatus'); if(sel) sel.value = 'Lain-lain'; switchTab('semua'); renderAll(); smoothScrollToTable(); });
+if (cardBerakhirEl) cardBerakhirEl.addEventListener('click', () => { specialFilter = null; const sel = document.getElementById('filterStatus'); if (sel) sel.value = 'Lain-lain'; switchTab('semua'); renderAll(); smoothScrollToTable(); });
 
 const cardBelumCoordEl = document.getElementById('cardBelumKoordinat');
-if(cardBelumCoordEl) cardBelumCoordEl.addEventListener('click', () => { specialFilter = 'no_coord'; switchTab('semua'); renderAll(); smoothScrollToTable(); });
+if (cardBelumCoordEl) cardBelumCoordEl.addEventListener('click', () => { specialFilter = 'no_coord'; switchTab('semua'); renderAll(); smoothScrollToTable(); });
 
 const cardBatasBelumEl = document.getElementById('cardBatasBelumDitemukan');
-if(cardBatasBelumEl) cardBatasBelumEl.addEventListener('click', () => { specialFilter = 'no_poly'; switchTab('semua'); renderAll(); smoothScrollToTable(); });
+if (cardBatasBelumEl) cardBatasBelumEl.addEventListener('click', () => { specialFilter = 'no_poly'; switchTab('semua'); renderAll(); smoothScrollToTable(); });
 
 // Inisialisasi awal aplikasi
 renderUserBadge();
