@@ -214,10 +214,10 @@
      bukan redesign total. Fokus: elemen yang paling gampang berantakan.
      ================================================================ */
   @media (max-width: 820px){
-    header{flex-direction:row;align-items:center;justify-content:space-between;flex-wrap:nowrap;}
-    header > div:first-child{min-width:0;}
-    header > div:first-child h1{font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
-    header > div:first-child p{display:none;} /* subjudul disembunyikan biar muat, "Halo!" yang penting kelihatan */
+    header{flex-direction:row;align-items:flex-start;justify-content:space-between;flex-wrap:nowrap;padding:10px 14px;}
+    header > div:first-child{min-width:0;flex:1;}
+    header > div:first-child h1{font-size:13px;white-space:normal;overflow:visible;text-overflow:clip;line-height:1.35;}
+    header > div:first-child p{display:none;}
 
     .burger-btn{display:inline-flex;}
     .header-actions{
@@ -257,5 +257,152 @@
     .view-value{text-align:left;}
 
     .modal{width:92vw;}
+
+    /* ---- KPI Panel: stack vertikal di mobile ---- */
+    .kpi-panel-container {
+      grid-template-columns: 1fr;
+      padding: 10px 14px;
+      gap: 10px;
+    }
+
+    /* Hero block: lebih compact, horizontal layout */
+    .kpi-hero-block {
+      flex-direction: row;
+      align-items: center;
+      gap: 14px;
+      padding: 12px 14px;
+    }
+    .kpi-hero-block .kpi-hero-value strong { font-size: 24px; }
+    .kpi-hero-hint { display: none; }
+
+    /* Metrics block: 2 kolom di mobile (was 3) */
+    .kpi-metrics-block {
+      grid-template-columns: repeat(2, 1fr);
+    }
+
+    /* Item yang span 2 kolom tetap full-width */
+    .kpi-metrics-block .kpi-item[style*="span 2"] {
+      grid-column: span 2;
+    }
+
+    /* Status pills: tetap 2 kolom, tapi ukuran lebih kecil */
+    .kpi-pills-grid { gap: 6px; }
+    .status-pill { padding: 5px 8px; font-size: 10.5px; }
+    .pill-val { font-size: 12px; }
   }
+
+/* ---- Pop-up Modal Persetujuan Akses Data ---- */
+.agreement-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.65);
+  -webkit-backdrop-filter: blur(10px);
+  backdrop-filter: blur(10px);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 99999 !important;
+  padding: 16px;
+}
+
+.agreement-overlay.open {
+  display: flex;
+}
+
+.agreement-modal {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 28px 26px;
+  width: 480px;
+  max-width: 92vw;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.45);
+  text-align: center;
+  animation: modalSlideIn 0.25s ease;
+}
+
+@keyframes modalSlideIn {
+  from { transform: scale(0.92) translateY(16px); opacity: 0; }
+  to   { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+.agreement-icon {
+  width: 56px;
+  height: 56px;
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 26px;
+  margin: 0 auto 16px;
+}
+
+.agreement-modal h3 {
+  margin: 0 0 14px;
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--navy);
+}
+
+.agreement-statement {
+  background: #F8FAFC;
+  border-left: 4px solid var(--navy);
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: #1E293B;
+  font-weight: 600;
+  text-align: left;
+  margin: 0 0 12px;
+}
+
+.agreement-subtext {
+  font-size: 12.5px;
+  color: var(--text-mut);
+  line-height: 1.5;
+  margin: 0 0 22px;
+  text-align: left;
+}
+
+.agreement-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.agreement-actions button {
+  flex: 1;
+  padding: 11px 16px;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-disagree {
+  background: #FFF5F5;
+  color: #DC2626;
+  border: 1px solid #FCA5A5;
+}
+
+.btn-disagree:hover {
+  background: #FEE2E2;
+  border-color: #EF4444;
+  color: #B91C1C;
+}
+
+.btn-agree {
+  background: var(--navy);
+  color: #ffffff;
+  border: 1px solid var(--navy);
+}
+
+.btn-agree:hover {
+  background: var(--navy-dark);
+  border-color: var(--navy-dark);
+}
+
 
