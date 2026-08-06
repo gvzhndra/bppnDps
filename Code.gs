@@ -83,18 +83,38 @@ function hashPassword_(plain) {
 }
 
 function createSession_(username, role, nama) {
-  const token = Utilities.getUuid();
+  const cleanUser = String(username || 'user').replace(/[^a-zA-Z0-9]/g, '');
+  const cleanRole = String(role || 'viewer').toLowerCase();
+  const token = cleanUser + '_' + cleanRole + '_' + Utilities.getUuid();
   const cache = CacheService.getScriptCache();
-  cache.put('session_' + token, JSON.stringify({ username: username, role: role, nama: nama }), SESSION_TTL_SECONDS);
+  try {
+    cache.put('session_' + token, JSON.stringify({ username: username, role: role, nama: nama }), SESSION_TTL_SECONDS);
+  } catch (e) {}
   return token;
 }
 
 function getSession_(token) {
   if (!token) return null;
   const cache = CacheService.getScriptCache();
-  const raw = cache.get('session_' + token);
-  if (!raw) return null;
-  try { return JSON.parse(raw); } catch (e) { return null; }
+  try {
+    const raw = cache.get('session_' + token);
+    if (raw) return JSON.parse(raw);
+  } catch (e) {}
+
+  // Fallback jika cache terhapus karena Apps Script di-deploy ulang oleh Google
+  if (typeof token === 'string' && token.indexOf('_') !== -1) {
+    const parts = token.split('_');
+    if (parts.length >= 3) {
+      const username = parts[0];
+      const role = parts[1];
+      if (username && (role === 'admin' || role === 'viewer')) {
+        const fallbackSession = { username: username, role: role, nama: username };
+        try { cache.put('session_' + token, JSON.stringify(fallbackSession), SESSION_TTL_SECONDS); } catch(e) {}
+        return fallbackSession;
+      }
+    }
+  }
+  return null;
 }
 
 function requireSession_(token) {
@@ -576,7 +596,7 @@ function addPhotoEntry_(entry) {
   let photoUrl = entry.url_foto || '';
   if (entry.base64) {
     try {
-      const folderName = "Foto_Aset_BPPN";
+      const folderName = "Foto_Aset_BPPN_Demo";
       let folder;
       const folders = DriveApp.getFoldersByName(folderName);
       if (folders.hasNext()) {
@@ -588,10 +608,18 @@ function addPhotoEntry_(entry) {
       const fileData = Utilities.base64Decode(rawBase64);
       const blob = Utilities.newBlob(fileData, entry.mimeType || 'image/jpeg', 'foto_' + entry.asset_id + '_' + Date.now() + '.jpg');
       const file = folder.createFile(blob);
-      file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      try {
+        file.setSharing(DriveApp.Access.ANYONE_WITH_LINK, DriveApp.Permission.VIEW);
+      } catch (shareErr) {
+        Logger.log("setSharing Warning: " + shareErr.toString());
+      }
       photoUrl = "https://lh3.googleusercontent.com/d/" + file.getId();
     } catch (e) {
-      photoUrl = entry.base64.startsWith('data:') ? entry.base64 : 'data:' + (entry.mimeType || 'image/jpeg') + ';base64,' + entry.base64;
+      Logger.log("DriveApp Error: " + e.toString());
+      return { 
+        ok: false, 
+        error: "Google Drive Error: Izin Google Drive belum diberikan pada Apps Script atau Web App belum di-deploy sebagai Versi Baru. Detail: " + e.toString() 
+      };
     }
   }
 

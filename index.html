@@ -1,198 +1,273 @@
 <!DOCTYPE html>
 <html lang="id">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Dashboard Aset eks BPPN — KPKNL Denpasar</title>
-<script src="js/config.js?v=3.8"></script>
-<script src="js/auth.js?v=3.8"></script>
-<script>guardDashboardPage();</script>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
-<link rel="stylesheet" href="css/style.css?v=4.4">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard Aset eks BPPN (Demo) — KPKNL Denpasar</title>
+  <script src="js/config.js?v=5.0"></script>
+  <script src="js/auth.js?v=5.0"></script>
+  <script>guardDashboardPage();</script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
+  <link rel="stylesheet" href="css/style.css?v=5.0">
 </head>
+
 <body>
 
-<header>
-  <div>
-    <h1>Dashboard Aset eks BPPN & PPA</h1>
-    <p>Wilayah kerja KPKNL Denpasar</p>
-  </div>
-  <div style="display:flex;gap:8px;align-items:center;position:relative;">
-    <span id="userInfo" style="font-size:12px;color:#C9D6E3;margin-right:4px;"></span>
-    <button id="btnBurger" class="burger-btn" aria-label="Menu">☰</button>
-    <div id="headerActions" class="header-actions">
-      <button id="btnLogout" style="display:none;">Keluar</button>
-      <button id="btnRefresh">Muat ulang dari Sheets</button>
-      <button id="btnExportSheets" class="primary">Ekspor ke Excel</button>
-      <button id="btnExport" class="primary">Unduh GeoJSON</button>
+  <header>
+    <div>
+      <h1>Dashboard Aset eks BPPN & PPA (Demo)</h1>
+      <p>Wilayah kerja KPKNL Denpasar (disclaimer: data pada app demo adalah data dummy)</p>
     </div>
-  </div>
-</header>
-
-<div class="toolbar">
-  <input type="text" id="search" placeholder="Cari kode aset, lokasi, atau status..." style="width:260px;">
-  <select id="filterAsal">
-    <option value="all">Semua asal aset</option>
-    <option value="Eks BPPN">Eks BPPN</option>
-    <option value="Eks PT PPA">Eks PT PPA</option>
-  </select>
-  <select id="filterStatus">
-    <option value="all">Semua kategori</option>
-    <option value="Sudah Dimanfaatkan">Sudah Dimanfaatkan</option>
-    <option value="Belum Dimanfaatkan">Belum Dimanfaatkan</option>
-    <option value="Bermasalah Hukum">Bermasalah Hukum</option>
-    <option value="Lain-lain">Lain-lain</option>
-  </select>
-  <!-- <button id="btnDraw" disabled>Gambar poligon baru</button> -->
-</div>
-
-
-
-<div class="kpi-panel-container">
-  <!-- Seksi 1: Hero Kluster (Kiri) -->
-  <div class="kpi-hero-block clickable-stat" id="cardTotalKluster" title="Klik untuk lihat tab Kluster Aset">
-    <div class="kpi-hero-header">
-      <span class="kpi-hero-icon">🗂️</span>
-      <span class="kpi-hero-title">Total Kluster</span>
-    </div>
-    <div class="kpi-hero-value">
-      <strong id="statTotalKluster">0</strong>
-      <span class="kpi-hero-sub">Kelompok Aset</span>
-    </div>
-    <div class="kpi-hero-hint">📍 Klik untuk navigasi Kluster</div>
-  </div>
-
-  <!-- Seksi 2: Metrik Fisik & Geometri (Tengah) -->
-  <div class="kpi-metrics-block">
-    <div class="kpi-item clickable-stat" id="cardTotalAset" title="Klik untuk lihat semua aset">
-      <span class="kpi-label">Total Aset</span>
-      <strong id="statTotal" class="kpi-num">0</strong>
-    </div>
-    <div class="kpi-item">
-      <span class="kpi-label">Luas Tanah (m²)</span>
-      <strong id="statLuasTanah" class="kpi-num">0</strong>
-    </div>
-    <div class="kpi-item">
-      <span class="kpi-label">Luas Bangunan (m²)</span>
-      <strong id="statLuasBangunan" class="kpi-num">0</strong>
-    </div>
-    <div class="kpi-item clickable-stat" id="cardBelumKoordinat" title="Klik untuk filter belum ada koordinat">
-      <span class="kpi-label">Belum Ada Koordinat</span>
-      <strong id="statTitik" class="kpi-num warn-text">0</strong>
-    </div>
-    <div class="kpi-item clickable-stat" id="cardBatasBelumDitemukan" title="Klik untuk filter batas belum ditemukan" style="grid-column: span 2;">
-      <span class="kpi-label">Batas Belum Ditemukan</span>
-      <strong id="statPolygon" class="kpi-num warn-text">0</strong>
-    </div>
-  </div>
-
-  <!-- Seksi 3: Status Penatausahaan - Interactive Pills (Kanan) -->
-  <div class="kpi-status-block">
-    <div class="kpi-status-header">Status Penatausahaan</div>
-    <div class="kpi-pills-grid">
-      <div class="status-pill pill-sudah clickable-stat" id="cardSudahDimanfaatkan" title="Filter: Sudah Dimanfaatkan">
-        <span class="pill-dot" style="background:#1D9E75;"></span>
-        <span class="pill-name">Sudah Dimanfaatkan</span>
-        <strong id="statSudahDimanfaatkan" class="pill-val">0</strong>
-      </div>
-      <div class="status-pill pill-belum clickable-stat" id="cardBelumDimanfaatkan" title="Filter: Belum Dimanfaatkan">
-        <span class="pill-dot" style="background:#94A3B8;"></span>
-        <span class="pill-name">Belum Dimanfaatkan</span>
-        <strong id="statBelumDimanfaatkan" class="pill-val">0</strong>
-      </div>
-      <div class="status-pill pill-masalah clickable-stat" id="cardBermasalah" title="Filter: Bermasalah Hukum">
-        <span class="pill-dot" style="background:#B23A3A;"></span>
-        <span class="pill-name">Bermasalah Hukum</span>
-        <strong id="statBermasalah" class="pill-val">0</strong>
-      </div>
-      <div class="status-pill pill-lain clickable-stat" id="cardBerakhir" title="Filter: Lain-lain">
-        <span class="pill-dot" style="background:#7C3AED;"></span>
-        <span class="pill-name">Lain-lain</span>
-        <strong id="statBerakhir" class="pill-val">0</strong>
+    <div style="display:flex;gap:8px;align-items:center;position:relative;">
+      <span id="userInfo" style="font-size:12px;color:#C9D6E3;margin-right:4px;"></span>
+      <button id="btnBurger" class="burger-btn" aria-label="Menu">☰</button>
+      <div id="headerActions" class="header-actions">
+        <button id="btnLogout" style="display:none;">Keluar</button>
+        <button id="btnRefresh">Muat ulang dari Sheets</button>
+        <button id="btnExportSheets" class="primary">Ekspor ke Excel</button>
+        <button id="btnExport" class="primary">Unduh GeoJSON</button>
       </div>
     </div>
-  </div>
-</div>
+  </header>
 
-<div class="main">
-  <div id="map"></div>
-  <div class="panel" id="sidePanel">
-    <div class="empty-hint">Belum ada aset yang dipilih.
-      <br><br>
-      Pilih salah satu aset pada tabel di bawah.
+  <div class="toolbar">
+    <input type="text" id="search" placeholder="Cari kode aset, lokasi, atau status..." style="width:260px;">
+    <select id="filterAsal">
+      <option value="all">Semua asal aset</option>
+      <option value="Eks BPPN">Eks BPPN</option>
+      <option value="Eks PT PPA">Eks PT PPA</option>
+    </select>
+    <select id="filterStatus">
+      <option value="all">Semua kategori</option>
+      <option value="Sudah Dimanfaatkan">Sudah Dimanfaatkan</option>
+      <option value="Belum Dimanfaatkan">Belum Dimanfaatkan</option>
+      <option value="Bermasalah Hukum">Bermasalah Hukum</option>
+      <option value="Lain-lain">Lain-lain</option>
+    </select>
+    <!-- <button id="btnDraw" disabled>Gambar poligon baru</button> -->
+  </div>
+
+
+
+  <div class="kpi-panel-container">
+    <!-- Seksi 1: Hero Kluster (Kiri) -->
+    <div class="kpi-hero-block clickable-stat" id="cardTotalKluster" title="Klik untuk lihat tab Kluster Aset">
+      <div class="kpi-hero-header">
+        <span class="kpi-hero-icon">🗂️</span>
+        <span class="kpi-hero-title">Total Kluster</span>
+      </div>
+      <div class="kpi-hero-value">
+        <strong id="statTotalKluster">0</strong>
+        <span class="kpi-hero-sub">Kelompok Aset</span>
+      </div>
+      <div class="kpi-hero-hint">📍 Klik untuk navigasi Kluster</div>
+    </div>
+
+    <!-- Seksi 2: Metrik Fisik & Geometri (Tengah) -->
+    <div class="kpi-metrics-block">
+      <div class="kpi-item clickable-stat" id="cardTotalAset" title="Klik untuk lihat semua aset">
+        <span class="kpi-label">Total Aset</span>
+        <strong id="statTotal" class="kpi-num">0</strong>
+      </div>
+      <div class="kpi-item">
+        <span class="kpi-label">Luas Tanah (m²)</span>
+        <strong id="statLuasTanah" class="kpi-num">0</strong>
+      </div>
+      <div class="kpi-item">
+        <span class="kpi-label">Luas Bangunan (m²)</span>
+        <strong id="statLuasBangunan" class="kpi-num">0</strong>
+      </div>
+      <div class="kpi-item clickable-stat" id="cardBelumKoordinat" title="Klik untuk filter belum ada koordinat">
+        <span class="kpi-label">Belum Ada Koordinat</span>
+        <strong id="statTitik" class="kpi-num warn-text">0</strong>
+      </div>
+      <div class="kpi-item clickable-stat" id="cardBatasBelumDitemukan" title="Klik untuk filter batas belum ditemukan"
+        style="grid-column: span 2;">
+        <span class="kpi-label">Batas Belum Ditemukan</span>
+        <strong id="statPolygon" class="kpi-num warn-text">0</strong>
+      </div>
+    </div>
+
+    <!-- Seksi 3: Status Penatausahaan - Interactive Pills (Kanan) -->
+    <div class="kpi-status-block">
+      <div class="kpi-status-header">Status Penatausahaan</div>
+      <div class="kpi-pills-grid">
+        <div class="status-pill pill-sudah clickable-stat" id="cardSudahDimanfaatkan"
+          title="Filter: Sudah Dimanfaatkan">
+          <span class="pill-dot" style="background:#1D9E75;"></span>
+          <span class="pill-name">Sudah Dimanfaatkan</span>
+          <strong id="statSudahDimanfaatkan" class="pill-val">0</strong>
+        </div>
+        <div class="status-pill pill-belum clickable-stat" id="cardBelumDimanfaatkan"
+          title="Filter: Belum Dimanfaatkan">
+          <span class="pill-dot" style="background:#94A3B8;"></span>
+          <span class="pill-name">Belum Dimanfaatkan</span>
+          <strong id="statBelumDimanfaatkan" class="pill-val">0</strong>
+        </div>
+        <div class="status-pill pill-masalah clickable-stat" id="cardBermasalah" title="Filter: Bermasalah Hukum">
+          <span class="pill-dot" style="background:#B23A3A;"></span>
+          <span class="pill-name">Bermasalah Hukum</span>
+          <strong id="statBermasalah" class="pill-val">0</strong>
+        </div>
+        <div class="status-pill pill-lain clickable-stat" id="cardBerakhir" title="Filter: Lain-lain">
+          <span class="pill-dot" style="background:#7C3AED;"></span>
+          <span class="pill-name">Lain-lain</span>
+          <strong id="statBerakhir" class="pill-val">0</strong>
+        </div>
+      </div>
     </div>
   </div>
-</div>
 
-<div class="table-wrap" id="tableWrap">
-  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
-    <div class="table-tabs">
-      <button id="tabKluster" class="tab-btn active">Kluster Aset</button>
-      <button id="tabSemua" class="tab-btn">Semua Aset</button>
-    </div>
-    <button id="btnAddPoint" class="primary">+ Tambah aset</button>
-  </div>
-  <p class="small-note" id="hintTambahAset" style="margin-top:-6px;margin-bottom:14px;">Belum ada GeoJSON? Tambah aset sebagai titik dulu, isi koordinatnya manual, lalu tempel GeoJSON poligon belakangan lewat panel edit begitu hasil trace-nya siap.</p>
-
-  <!-- View 1: Tab Kluster Aset -->
-  <div id="viewKluster">
-    <div id="clusterContainer"></div>
-  </div>
-
-  <!-- View 2: Tab Semua Aset -->
-  <div id="viewSemua" style="display:none;">
-    <table>
-      <thead>
-        <tr>
-          <th>Kode Aset</th>
-          <th>Asal Aset</th>
-          <th>Lokasi</th>
-          <th>Kluster</th>
-          <th>Geometri</th>
-          <th>Luas Tanah (m²)</th>
-          <th>Luas Bangunan (m²)</th>
-          <th>Status</th>
-          <th>No. Dokumen</th>
-          <th>Jenis Dokumen</th>
-          <th>Aksi</th>
-        </tr>
-      </thead>
-      <tbody id="tableBody"></tbody>
-    </table>
-    <div id="pagination" class="pagination"></div>
-  </div>
-</div>
-
-<div class="loading-overlay" id="loadingOverlay">
-  <div class="spinner"></div>
-  <span id="loadingText">Menyimpan...</span>
-</div>
-
-<div class="toast" id="toastMessage"></div>
-
-<!-- Modal Persetujuan Akses Data -->
-<div class="agreement-overlay" id="agreementOverlay" style="display:none;">
-  <div class="agreement-modal">
-    <div class="agreement-icon">🔒</div>
-    <h3>Persetujuan Akses Data</h3>
-    <div class="agreement-statement">
-      "Saya setuju data pada halaman ini bersifat terbatas dan hanya untuk kepentingan dinas."
-    </div>
-    <p class="agreement-subtext">
-      Mohon konfirmasi persetujuan Anda untuk melanjutkan mengakses Dashboard Aset eks BPPN &amp; PPA KPKNL Denpasar.
-    </p>
-    <div class="agreement-actions">
-      <button type="button" class="btn-disagree" id="btnDisagree">Tidak Setuju</button>
-      <button type="button" class="btn-agree" id="btnAgree">Setuju</button>
+  <div class="main">
+    <div id="map"></div>
+    <div class="panel" id="sidePanel">
+      <div class="empty-hint">Belum ada aset yang dipilih.
+        <br><br>
+        Pilih salah satu aset pada tabel di bawah.
+      </div>
     </div>
   </div>
-</div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
-<script src="js/api.js?v=4.4"></script>
-<script src="js/app.js?v=4.4"></script>
+  <div class="table-wrap" id="tableWrap">
+    <div
+      style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;flex-wrap:wrap;gap:10px;">
+      <div class="table-tabs">
+        <button id="tabKluster" class="tab-btn active">Kluster Aset</button>
+        <button id="tabSemua" class="tab-btn">Semua Aset</button>
+      </div>
+      <button id="btnAddPoint" class="primary">+ Tambah aset</button>
+    </div>
+    <p class="small-note" id="hintTambahAset" style="margin-top:-6px;margin-bottom:14px;">Belum ada GeoJSON? Tambah aset
+      sebagai titik dulu, isi koordinatnya manual, lalu tempel GeoJSON poligon belakangan lewat panel edit begitu hasil
+      trace-nya siap.</p>
+
+    <!-- View 1: Tab Kluster Aset -->
+    <div id="viewKluster">
+      <div id="clusterContainer"></div>
+    </div>
+
+    <!-- View 2: Tab Semua Aset -->
+    <div id="viewSemua" style="display:none;">
+      <table>
+        <thead>
+          <tr>
+            <th>Kode Aset</th>
+            <th>Asal Aset</th>
+            <th>Lokasi</th>
+            <th>Kluster</th>
+            <th>Geometri</th>
+            <th>Luas Tanah (m²)</th>
+            <th>Luas Bangunan (m²)</th>
+            <th>Status</th>
+            <th>No. Dokumen</th>
+            <th>Jenis Dokumen</th>
+            <th>Aksi</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+      <div id="pagination" class="pagination"></div>
+    </div>
+  </div>
+
+  <div class="loading-overlay" id="loadingOverlay">
+    <div class="spinner"></div>
+    <span id="loadingText">Menyimpan...</span>
+  </div>
+
+  <div class="toast" id="toastMessage"></div>
+
+  <!-- Modal Persetujuan Akses Data -->
+  <div class="agreement-overlay" id="agreementOverlay" style="display:none;">
+    <div class="agreement-modal">
+      <div class="agreement-icon">🔒</div>
+      <h3>Persetujuan Akses Data</h3>
+      <div class="agreement-statement">
+        "Saya setuju data pada halaman ini bersifat terbatas dan hanya untuk kepentingan dinas."
+      </div>
+      <p class="agreement-subtext">
+        Mohon konfirmasi persetujuan Anda untuk melanjutkan mengakses Dashboard Aset eks BPPN &amp; PPA KPKNL Denpasar.
+      </p>
+      <div class="agreement-actions">
+        <button type="button" class="btn-disagree" id="btnDisagree">Tidak Setuju</button>
+        <button type="button" class="btn-agree" id="btnAgree">Setuju</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Galeri Foto Lapangan -->
+  <div class="foto-modal-overlay" id="fotoModalOverlay">
+    <div class="foto-modal" id="fotoModal">
+      <div class="foto-modal-header">
+        <div>
+          <p class="foto-modal-title" id="fotoModalTitle">Foto Lapangan</p>
+          <p class="foto-modal-subtitle" id="fotoModalSubtitle">Galeri foto dokumentasi aset</p>
+        </div>
+        <button class="foto-modal-close" id="fotoModalClose" aria-label="Tutup">✕</button>
+      </div>
+      <div class="foto-modal-actions">
+        <input type="file" accept="image/*" multiple id="fotoInputKomputer" style="display:none;">
+        <input type="file" accept="image/*" capture="environment" id="fotoInputKamera" style="display:none;">
+        <button class="btn-upload-komputer" id="btnUploadKomputer">🖼️ Upload dari Komputer</button>
+        <!-- tombol kamera di-render via JS hanya saat mobile -->
+      </div>
+      <div class="foto-modal-body" id="fotoModalBody">
+        <div class="foto-modal-empty">
+          <span class="empty-icon">📷</span>
+          <p>Pilih aset terlebih dahulu untuk melihat foto lapangan.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal Preview & Konfirmasi Upload Foto -->
+  <div class="foto-preview-overlay" id="fotoPreviewOverlay" style="display:none;">
+    <div class="foto-preview-modal">
+      <div class="foto-preview-header">
+        <div>
+          <p class="foto-preview-title" id="fotoPreviewTitle">Konfirmasi Unggah Foto</p>
+          <p class="foto-preview-subtitle" id="fotoPreviewSubtitle">Periksa foto sebelum diunggah ke server</p>
+        </div>
+        <button class="foto-modal-close" id="fotoPreviewClose" aria-label="Batal">✕</button>
+      </div>
+      <div class="foto-preview-body" id="fotoPreviewBody">
+        <!-- Grid Preview Item -->
+      </div>
+      <div class="foto-preview-progress" id="fotoPreviewProgress" style="display:none;">
+        <div class="progress-bar-wrap">
+          <div class="progress-bar-fill" id="fotoProgressBarFill" style="width: 0%;"></div>
+        </div>
+        <p class="progress-text" id="fotoProgressText">Mempersiapkan pengunggahan...</p>
+      </div>
+      <div class="foto-preview-actions" id="fotoPreviewActions">
+        <button class="btn-cancel-upload" id="btnCancelUpload">Batal</button>
+        <button class="btn-confirm-upload" id="btnConfirmUpload">🚀 Unggah Foto</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Lightbox -->
+  <div class="foto-lightbox" id="fotoLightbox">
+    <button class="lightbox-close" id="lightboxClose">✕</button>
+    <div class="lightbox-img-wrap">
+      <button class="lightbox-nav prev" id="lightboxPrev">&#8592;</button>
+      <img id="lightboxImg" src="" alt="Foto lapangan">
+      <button class="lightbox-nav next" id="lightboxNext">&#8594;</button>
+    </div>
+    <div class="lightbox-meta">
+      <div id="lightboxMeta"></div>
+      <div class="lightbox-counter" id="lightboxCounter"></div>
+    </div>
+    <div class="lightbox-thumbs" id="lightboxThumbs"></div>
+  </div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.js"></script>
+  <script src="js/api.js?v=5.0"></script>
+  <script src="js/app.js?v=5.0"></script>
 
 </body>
+
 </html>

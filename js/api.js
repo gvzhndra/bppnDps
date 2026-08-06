@@ -34,7 +34,10 @@ async function apiGet(action, extraParams){
   try {
     return JSON.parse(text);
   } catch(e) {
-    if (isSessionError(text) || text.includes('<!DOCTYPE') || text.includes('<html')) {
+    if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+      return { ok: false, error: "Koneksi ke Apps Script bermasalah (Server mengembalikan halaman HTML/Drive). Pastikan Web App disetel 'Anyone' (Siapa saja) di Apps Script." };
+    }
+    if (isSessionError(text)) {
       return { ok: false, error: "Sesi login tidak valid atau sudah kedaluwarsa. Silakan login ulang." };
     }
     return { ok: false, error: "Respon server tidak valid: " + text.substring(0, 80) };
@@ -50,7 +53,10 @@ async function apiSend(action, payload){
   try {
     return JSON.parse(text);
   } catch(e) {
-    if (isSessionError(text) || text.includes('<!DOCTYPE') || text.includes('<html')) {
+    if (text.includes('<!DOCTYPE') || text.includes('<html')) {
+      return { ok: false, error: "Koneksi ke Apps Script bermasalah (Server mengembalikan halaman HTML/Drive). Pastikan Web App disetel 'Anyone' (Siapa saja) di Apps Script." };
+    }
+    if (isSessionError(text)) {
       return { ok: false, error: "Sesi login tidak valid atau sudah kedaluwarsa. Silakan login ulang." };
     }
     return { ok: false, error: "Respon server tidak valid: " + text.substring(0, 80) };
@@ -200,21 +206,17 @@ async function fetchPhotos(assetId){
   }
 }
 async function addPhoto(entry){
-  showLoading('Mengunggah foto...');
   try{
     const res = await apiSend("addPhoto", { entry });
     if(!res.ok){
       if(isSessionError(res.error)){ handleSessionExpired(); return null; }
-      alert("Gagal menambah foto: " + res.error);
+      console.warn("Gagal menambah foto: " + res.error);
       return null;
     }
-    showToast('✓ Foto ditambahkan');
     return res;
   } catch(err){
-    alert("Gagal menambah foto: " + err);
+    console.error("Gagal menambah foto: " + err);
     return null;
-  } finally {
-    hideLoading();
   }
 }
 async function deletePhoto(id){

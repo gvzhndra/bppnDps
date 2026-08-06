@@ -23,6 +23,9 @@ function isAdmin(){
 }
 function isSessionError(errMsg){
   const s = String(errMsg || "").toLowerCase();
+  if (s.indexOf("koneksi ke apps script") !== -1 || s.indexOf("google drive") !== -1 || s.indexOf("respon server") !== -1) {
+    return false;
+  }
   return s.indexOf("sesi") !== -1 || s.indexOf("login") !== -1 || s.indexOf("akses ditolak") !== -1;
 }
 
