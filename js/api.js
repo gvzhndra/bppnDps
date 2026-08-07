@@ -26,7 +26,7 @@ function showToast(text){
 
 async function apiGet(action, extraParams){
   const params = new URLSearchParams(Object.assign(
-    { action: action || "getAset", token: getToken() || "" },
+    { action: action || "getAset", token: getToken() || "", _t: Date.now() },
     extraParams || {}
   ));
   const res = await fetch(API_URL + "?" + params.toString());
@@ -191,9 +191,25 @@ async function deleteHistoryEntry(id){
 // ============================
 // Foto & Geotagging per aset
 // ============================
+async function addPhotoToServer(assetId, photoObj) {
+  // photoObj: { base64, filename, mimeType, sumber_tag, lat, lng }
+  return await apiSend("addPhoto", {
+    entry: {
+      asset_id: assetId,
+      base64: photoObj.base64,
+      filename: photoObj.filename,
+      mimeType: photoObj.mimeType,
+      sumber_tag: photoObj.sumber_tag,
+      lat: photoObj.lat,
+      lng: photoObj.lng
+    }
+  });
+}
+
 async function fetchPhotos(assetId){
   try{
     const res = await apiGet("getPhotos", { asset_id: assetId });
+    console.log('[DEBUG fetchPhotos] assetId:', assetId, 'response:', res);
     if(!res.ok){
       if(isSessionError(res.error)){ handleSessionExpired(); return []; }
       alert("Gagal memuat foto: " + res.error);
@@ -201,36 +217,48 @@ async function fetchPhotos(assetId){
     }
     return res.photos || [];
   } catch(err){
+    console.error('[DEBUG fetchPhotos] error:', err);
     alert("Gagal memuat foto: " + err);
     return [];
   }
 }
 async function addPhoto(entry){
   try{
+    // DEBUG: log exactly what's being sent (without dumping the full base64 string)
+    console.log('[DEBUG addPhoto] sending:', JSON.stringify({
+      asset_id: entry.asset_id,
+      mimeType: entry.mimeType,
+      base64_length: entry.base64 ? entry.base64.length : 0,
+      lat: entry.lat,
+      lng: entry.lng,
+      sumber_tag: entry.sumber_tag,
+      token_present: !!getToken(),
+      role: (getSession() || {}).role
+    }));
     const res = await apiSend("addPhoto", { entry });
+    console.log('[DEBUG addPhoto] response:', JSON.stringify(res));
     if(!res.ok){
-      if(isSessionError(res.error)){ handleSessionExpired(); return null; }
+      if(isSessionError(res.error)){ handleSessionExpired(); return res; }
       console.warn("Gagal menambah foto: " + res.error);
-      return null;
     }
     return res;
   } catch(err){
+    console.error("[DEBUG addPhoto] threw exception:", err);
     console.error("Gagal menambah foto: " + err);
-    return null;
+    return { ok: false, error: err.toString() };
   }
 }
 async function addPhotoBatch(entries){
   try{
     const res = await apiSend("addPhotoBatch", { entries });
     if(!res.ok){
-      if(isSessionError(res.error)){ handleSessionExpired(); return null; }
+      if(isSessionError(res.error)){ handleSessionExpired(); return res; }
       console.warn("Gagal menambah batch foto: " + res.error);
-      return null;
     }
     return res;
   } catch(err){
     console.error("Gagal menambah batch foto: " + err);
-    return null;
+    return { ok: false, error: err.toString() };
   }
 }
 async function deletePhoto(id){

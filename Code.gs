@@ -375,25 +375,73 @@ function getPhotosData_(assetId) {
   if (!sheet) return [];
   const data = sheet.getDataRange().getValues();
   if (data.length < 2) return [];
-  const headers = data[0];
-  const idxId = headers.indexOf('id');
-  const idxAsset = headers.indexOf('asset_id');
-  const idxUrl = headers.indexOf('url_foto');
-  const idxLat = headers.indexOf('lat');
-  const idxLng = headers.indexOf('lng');
-  const idxSumber = headers.indexOf('sumber_tag');
-  const idxTanggal = headers.indexOf('tanggal');
+  
+  const rawHeaders = data[0];
+  const headers = rawHeaders.map(function(h) { return String(h || '').trim().toLowerCase(); });
+
+  const idxId = headers.findIndex(function(h) { return h === 'id'; });
+  const idxAsset = headers.findIndex(function(h) { return h === 'asset_id' || h === 'assetid' || h === 'asset id' || h === 'kode_aset' || h === 'kode aset'; });
+  const idxUrl = headers.findIndex(function(h) { return h === 'url_foto' || h === 'foto_url' || h === 'url' || h === 'foto' || h === 'link_foto'; });
+  const idxLat = headers.findIndex(function(h) { return h === 'lat' || h === 'latitude'; });
+  const idxLng = headers.findIndex(function(h) { return h === 'lng' || h === 'longitude'; });
+  const idxSumber = headers.findIndex(function(h) { return h === 'sumber_tag' || h === 'sumber'; });
+  const idxTanggal = headers.findIndex(function(h) { return h === 'tanggal' || h === 'date'; });
+
+  if (idxAsset === -1 || idxUrl === -1) return [];
+
+  const targetAssetIdStr = String(assetId || '').trim().toLowerCase();
+
+  // Cari kode_aset dari tab SHEET_ASET jika ada
+  let targetKodeAsetStr = '';
+  try {
+    const asetSheet = getSheet_(SHEET_ASET);
+    if (asetSheet) {
+      const asetData = asetSheet.getDataRange().getValues();
+      if (asetData.length >= 2) {
+        const aHeaders = asetData[0].map(function(h) { return String(h || '').trim().toLowerCase(); });
+        const aIdxId = aHeaders.findIndex(function(h) { return h === 'id'; });
+        const aIdxKode = aHeaders.findIndex(function(h) { return h === 'kode_aset' || h === 'kode aset'; });
+        if (aIdxId !== -1 && aIdxKode !== -1) {
+          for (let k = 1; k < asetData.length; k++) {
+            if (String(asetData[k][aIdxId]).trim().toLowerCase() === targetAssetIdStr) {
+              targetKodeAsetStr = String(asetData[k][aIdxKode] || '').trim().toLowerCase();
+              break;
+            }
+          }
+        }
+      }
+    }
+  } catch(e) {}
+
   const rows = data.slice(1);
   return rows
-    .filter(function (row) { return String(row[idxAsset]) === String(assetId); })
+    .filter(function (row) {
+      const val = String(row[idxAsset] || '').trim().toLowerCase();
+      if (!val) return false;
+
+      // 1. Exact match ID Sistem atau Kode Aset
+      if (val === targetAssetIdStr) return true;
+      if (targetKodeAsetStr && val === targetKodeAsetStr) return true;
+
+      // 2. Contains match
+      if (val.includes(targetAssetIdStr) || targetAssetIdStr.includes(val)) return true;
+      if (targetKodeAsetStr && (val.includes(targetKodeAsetStr) || targetKodeAsetStr.includes(val))) return true;
+
+      // 3. Prefix match untuk ID truncated (misal A1783838...)
+      if (val.length >= 6 && targetAssetIdStr.length >= 6 && val.substring(0, 8) === targetAssetIdStr.substring(0, 8)) {
+        return true;
+      }
+
+      return false;
+    })
     .map(function (row) {
       return {
-        id: String(row[idxId]),
+        id: idxId !== -1 ? String(row[idxId]) : ('F' + Math.random()),
         asset_id: String(row[idxAsset]),
-        url_foto: row[idxUrl] || '',
+        url_foto: String(row[idxUrl] || ''),
         lat: idxLat !== -1 ? row[idxLat] : '',
         lng: idxLng !== -1 ? row[idxLng] : '',
-        sumber_tag: idxSumber !== -1 ? (row[idxSumber] || '') : '',
+        sumber_tag: idxSumber !== -1 ? String(row[idxSumber] || '') : '',
         tanggal: idxTanggal !== -1 ? (row[idxTanggal] ? formatDate_(row[idxTanggal]) : '') : ''
       };
     });
@@ -438,12 +486,12 @@ function doPost(e) {
     }
 
     if (action === 'addPhoto') {
-      requireAdmin_(body.token);
+      requireSession_(body.token);
       return jsonResponse_(addPhotoEntry_(body.entry));
     }
 
     if (action === 'addPhotoBatch') {
-      requireAdmin_(body.token);
+      requireSession_(body.token);
       return jsonResponse_(addPhotoBatchEntries_(body.entries));
     }
 
@@ -632,13 +680,14 @@ function addPhotoEntry_(entry) {
   const id = 'F' + new Date().getTime() + Math.floor(Math.random() * 1000);
   const tanggal = formatDate_(new Date());
   const rowValues = headers.map(function (h) {
-    if (h === 'id') return id;
-    if (h === 'asset_id') return entry.asset_id;
-    if (h === 'url_foto') return photoUrl;
-    if (h === 'lat') return entry.lat !== undefined ? entry.lat : '';
-    if (h === 'lng') return entry.lng !== undefined ? entry.lng : '';
-    if (h === 'sumber_tag') return entry.sumber_tag || '';
-    if (h === 'tanggal') return tanggal;
+    const hNorm = String(h || '').trim().toLowerCase();
+    if (hNorm === 'id') return id;
+    if (hNorm === 'asset_id' || hNorm === 'assetid' || hNorm === 'asset_id') return entry.asset_id;
+    if (hNorm === 'url_foto' || hNorm === 'url' || hNorm === 'foto_url' || hNorm === 'foto') return photoUrl;
+    if (hNorm === 'lat' || hNorm === 'latitude') return entry.lat !== undefined ? entry.lat : '';
+    if (hNorm === 'lng' || hNorm === 'longitude') return entry.lng !== undefined ? entry.lng : '';
+    if (hNorm === 'sumber_tag' || hNorm === 'sumber') return entry.sumber_tag || '';
+    if (hNorm === 'tanggal' || hNorm === 'date') return tanggal;
     return '';
   });
   sheet.appendRow(rowValues);
@@ -683,6 +732,12 @@ function deletePhotoEntry_(id) {
 function generatePasswordHash() {
   const PLAIN_PASSWORD = 'GANTI_INI';
   Logger.log(hashPassword_(PLAIN_PASSWORD));
+}
+
+function testAuthorizeDrivePermissions() {
+  const folders = DriveApp.getFoldersByName("Foto_Aset_BPPN_Demo");
+  let folder = folders.hasNext() ? folders.next() : DriveApp.createFolder("Foto_Aset_BPPN_Demo");
+  Logger.log("Izin Drive Berhasil! Folder ID: " + folder.getId());
 }
 
 function exportData_(username) {
