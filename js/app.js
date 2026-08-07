@@ -949,6 +949,7 @@ var _fotoModalState = { assetId: null, assetName: '', photos: [], currentIdx: 0 
 async function openFotoModal(assetId, assetName) {
   _fotoModalState.assetId = assetId;
   _fotoModalState.assetName = assetName;
+  clearFotoDraftArea();
 
   var overlay = document.getElementById('fotoModalOverlay');
   var titleEl = document.getElementById('fotoModalTitle');
@@ -1053,92 +1054,83 @@ async function loadAndRenderFotoModal(assetId) {
 }
 
 // ============================================================
-// MODAL PREVIEW & BATCH UPLOAD FOTO
+// IN-UI DRAFT PREVIEW & SAVE FOTO LAPANGAN
 // ============================================================
 var _pendingUploadFiles = [];
 
-function openFotoPreviewModal(files) {
+function addDraftFiles(files) {
   if (!files || !files.length) return;
-  _pendingUploadFiles = Array.from(files);
-
-  var overlay = document.getElementById('fotoPreviewOverlay');
-  var progress = document.getElementById('fotoPreviewProgress');
-  var actions = document.getElementById('fotoPreviewActions');
-  var btnConfirm = document.getElementById('btnConfirmUpload');
-
-  if (progress) progress.style.display = 'none';
-  if (actions) actions.style.display = 'flex';
-  if (btnConfirm) btnConfirm.disabled = false;
-
-  renderFotoPreviewGrid();
-  if (overlay) overlay.style.display = 'flex';
+  var newFiles = Array.from(files);
+  _pendingUploadFiles = _pendingUploadFiles.concat(newFiles);
+  renderFotoDraftArea();
 }
 
-function closeFotoPreviewModal() {
-  var overlay = document.getElementById('fotoPreviewOverlay');
-  if (overlay) overlay.style.display = 'none';
+function clearFotoDraftArea() {
   _pendingUploadFiles = [];
+  var container = document.getElementById('fotoDraftContainer');
+  var progressEl = document.getElementById('fotoUploadProgress');
+  if (container) container.style.display = 'none';
+  if (progressEl) progressEl.style.display = 'none';
 }
 
-function renderFotoPreviewGrid() {
-  var body = document.getElementById('fotoPreviewBody');
-  var btnConfirm = document.getElementById('btnConfirmUpload');
-  var subtitle = document.getElementById('fotoPreviewSubtitle');
+function renderFotoDraftArea() {
+  var container = document.getElementById('fotoDraftContainer');
+  var titleEl = document.getElementById('fotoDraftTitle');
+  var gridEl = document.getElementById('fotoDraftGrid');
+  var saveBtn = document.getElementById('btnSaveDraft');
+  var progressEl = document.getElementById('fotoUploadProgress');
 
-  if (!_pendingUploadFiles.length) {
-    closeFotoPreviewModal();
+  if (!container || !_pendingUploadFiles.length) {
+    clearFotoDraftArea();
     return;
   }
 
-  if (subtitle) {
-    subtitle.textContent = _pendingUploadFiles.length + ' foto dipilih untuk aset ' + (_fotoModalState.assetName || '');
+  container.style.display = 'flex';
+  if (progressEl) progressEl.style.display = 'none';
+  if (saveBtn) {
+    saveBtn.disabled = false;
+    saveBtn.innerHTML = '💾 Simpan ' + _pendingUploadFiles.length + ' Foto ke Server';
   }
 
-  if (btnConfirm) {
-    btnConfirm.textContent = '🚀 Unggah ' + _pendingUploadFiles.length + ' Foto';
+  if (titleEl) {
+    titleEl.textContent = '📸 ' + _pendingUploadFiles.length + ' Foto Siap Disimpan (Draft)';
   }
 
-  if (!body) return;
-
-  body.innerHTML = '<div class="foto-preview-grid">' +
-    _pendingUploadFiles.map(function(file, idx) {
-      var sizeKb = Math.round(file.size / 1024);
-      var sizeStr = sizeKb > 1024 ? (sizeKb / 1024).toFixed(1) + ' MB' : sizeKb + ' KB';
+  if (gridEl) {
+    gridEl.innerHTML = _pendingUploadFiles.map(function(file, idx) {
       var tempUrl = URL.createObjectURL(file);
-      return '<div class="foto-preview-item" data-preview-idx="' + idx + '">' +
-        '<div class="foto-preview-img-wrap">' +
-          '<img src="' + tempUrl + '" alt="Preview foto">' +
-          '<button class="foto-preview-remove" data-idx="' + idx + '" title="Batal foto ini">✕</button>' +
-        '</div>' +
-        '<div class="foto-preview-info">' +
-          '<span class="foto-preview-filename" title="' + escapeHtml(file.name) + '">' + escapeHtml(file.name) + '</span>' +
-          '<span class="foto-preview-meta">' + sizeStr + '</span>' +
-        '</div>' +
-      '</div>';
-    }).join('') + '</div>';
+      return '<div class="foto-draft-item" data-idx="' + idx + '">' +
+        '<img src="' + tempUrl + '" alt="Draft preview">' +
+        '<button class="foto-draft-remove" data-idx="' + idx + '" title="Hapus foto ini dari draft">✕</button>' +
+        '</div>';
+    }).join('');
 
-  body.querySelectorAll('.foto-preview-remove').forEach(function(btn) {
-    btn.addEventListener('click', function(e) {
-      e.stopPropagation();
-      var idx = parseInt(btn.dataset.idx, 10);
-      _pendingUploadFiles.splice(idx, 1);
-      renderFotoPreviewGrid();
+    gridEl.querySelectorAll('.foto-draft-remove').forEach(function(btn) {
+      btn.addEventListener('click', function(e) {
+        e.stopPropagation();
+        var idx = parseInt(btn.dataset.idx, 10);
+        _pendingUploadFiles.splice(idx, 1);
+        renderFotoDraftArea();
+      });
     });
-  });
+  }
 }
 
-async function startBatchPhotoUpload() {
+async function saveFotoDrafts() {
   if (!_pendingUploadFiles.length || !_fotoModalState.assetId) return;
   var assetId = _fotoModalState.assetId;
   var a = features.find(function(f) { return f.id === assetId; });
   if (!a) { alert('Aset tidak ditemukan'); return; }
 
-  var progressEl = document.getElementById('fotoPreviewProgress');
-  var actionsEl = document.getElementById('fotoPreviewActions');
+  var saveBtn = document.getElementById('btnSaveDraft');
+  var progressEl = document.getElementById('fotoUploadProgress');
   var fillEl = document.getElementById('fotoProgressBarFill');
   var textEl = document.getElementById('fotoProgressText');
 
-  if (actionsEl) actionsEl.style.display = 'none';
+  if (saveBtn) {
+    saveBtn.disabled = true;
+    saveBtn.innerHTML = '⏳ Menyimpan foto...';
+  }
   if (progressEl) progressEl.style.display = 'block';
 
   var total = _pendingUploadFiles.length;
@@ -1148,7 +1140,7 @@ async function startBatchPhotoUpload() {
     var file = _pendingUploadFiles[i];
     var pct = Math.round((i / total) * 100);
     if (fillEl) fillEl.style.width = pct + '%';
-    if (textEl) textEl.textContent = 'Mengunggah foto ' + (i + 1) + ' dari ' + total + ': ' + escapeHtml(file.name) + '...';
+    if (textEl) textEl.textContent = 'Menyimpan foto ' + (i + 1) + ' dari ' + total + ' (' + escapeHtml(file.name) + ')...';
 
     try {
       var base64 = await compressImageToBase64(file, 1024);
@@ -1170,28 +1162,23 @@ async function startBatchPhotoUpload() {
       if (res && res.ok !== false) {
         successCount++;
       } else {
-        console.warn('Foto gagal diunggah:', file.name, res);
+        console.warn('Foto gagal disimpan:', file.name, res);
       }
     } catch (err) {
-      console.error('Gagal mengunggah foto ' + file.name + ':', err);
+      console.error('Gagal menyimpan foto ' + file.name + ':', err);
     }
   }
 
   if (fillEl) fillEl.style.width = '100%';
-  if (textEl) textEl.textContent = '✓ Selesai! ' + successCount + ' dari ' + total + ' foto berhasil diunggah.';
+  if (textEl) textEl.textContent = '✓ Selesai! ' + successCount + ' dari ' + total + ' foto berhasil disimpan.';
 
   setTimeout(async function() {
-    closeFotoPreviewModal();
+    clearFotoDraftArea();
     await loadAndRenderFotoModal(assetId);
     if (successCount > 0) {
-      showToast('✓ ' + successCount + ' foto berhasil diunggah');
+      showToast('✓ ' + successCount + ' foto berhasil disimpan!');
     }
-  }, 700);
-}
-
-// Legacy wrapper
-async function processPhotoUpload(file, assetId) {
-  if (file) openFotoPreviewModal([file]);
+  }, 600);
 }
 
 // ============================================================
@@ -1268,6 +1255,7 @@ function initFotoModal() {
   function closeFotoModal() {
     overlay.style.display = 'none';
     document.body.style.overflow = '';
+    clearFotoDraftArea();
     _fotoModalState.assetId = null;
     _fotoModalState.photos = [];
   }
@@ -1283,7 +1271,7 @@ function initFotoModal() {
   if (inputKomputer) inputKomputer.addEventListener('change', function(e) {
     var files = e.target.files;
     e.target.value = '';
-    if (files && files.length && _fotoModalState.assetId) openFotoPreviewModal(files);
+    if (files && files.length && _fotoModalState.assetId) addDraftFiles(files);
   });
 
   // Upload kamera HP
@@ -1291,17 +1279,14 @@ function initFotoModal() {
   if (inputKamera) inputKamera.addEventListener('change', function(e) {
     var files = e.target.files;
     e.target.value = '';
-    if (files && files.length && _fotoModalState.assetId) openFotoPreviewModal(files);
+    if (files && files.length && _fotoModalState.assetId) addDraftFiles(files);
   });
 
-  // Event handlers untuk Modal Preview Upload
-  var previewCloseBtn = document.getElementById('fotoPreviewClose');
-  var cancelUploadBtn = document.getElementById('btnCancelUpload');
-  var confirmUploadBtn = document.getElementById('btnConfirmUpload');
-
-  if (previewCloseBtn) previewCloseBtn.addEventListener('click', closeFotoPreviewModal);
-  if (cancelUploadBtn) cancelUploadBtn.addEventListener('click', closeFotoPreviewModal);
-  if (confirmUploadBtn) confirmUploadBtn.addEventListener('click', startBatchPhotoUpload);
+  // Event handlers untuk Draft Foto Area
+  var btnClearDraft = document.getElementById('btnClearDraft');
+  var btnSaveDraft = document.getElementById('btnSaveDraft');
+  if (btnClearDraft) btnClearDraft.addEventListener('click', clearFotoDraftArea);
+  if (btnSaveDraft) btnSaveDraft.addEventListener('click', saveFotoDrafts);
 
   // Lightbox navigasi
   var lbClose = document.getElementById('lightboxClose');
