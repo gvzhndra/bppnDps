@@ -277,6 +277,15 @@
   }
   .lightbox-thumb.active { opacity: 1; border-color: #fff; }
 
+  .foto-thumb-wrap.temp-uploading {
+    border: 2px solid #3B82F6; position: relative; opacity: 0.9;
+  }
+  .foto-uploading-badge {
+    position: absolute; bottom: 4px; left: 4px; right: 4px;
+    background: rgba(15, 23, 42, 0.75); color: #fff; font-size: 9px; font-weight: 600;
+    padding: 2px 4px; border-radius: 4px; text-align: center; backdrop-filter: blur(4px);
+  }
+
   /* ---- Area Draft Foto Baru Dipilih (Direct In-UI Preview) ---- */
   .foto-draft-container {
     background: #F0FDF4; border: 1.5px dashed #22C55E; border-radius: 12px;

@@ -442,6 +442,11 @@ function doPost(e) {
       return jsonResponse_(addPhotoEntry_(body.entry));
     }
 
+    if (action === 'addPhotoBatch') {
+      requireAdmin_(body.token);
+      return jsonResponse_(addPhotoBatchEntries_(body.entries));
+    }
+
     if (action === 'deletePhoto') {
       requireAdmin_(body.token);
       return jsonResponse_(deletePhotoEntry_(body.id));
@@ -638,6 +643,18 @@ function addPhotoEntry_(entry) {
   });
   sheet.appendRow(rowValues);
   return { ok: true, id: id, url_foto: photoUrl };
+}
+
+function addPhotoBatchEntries_(entries) {
+  if (!Array.isArray(entries) || !entries.length) {
+    return { ok: false, error: 'Tidak ada data foto yang dikirim' };
+  }
+  const results = [];
+  for (let i = 0; i < entries.length; i++) {
+    const res = addPhotoEntry_(entries[i]);
+    results.push(res);
+  }
+  return { ok: true, results: results };
 }
 
 function deletePhotoEntry_(id) {

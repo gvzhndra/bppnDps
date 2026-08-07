@@ -219,6 +219,20 @@ async function addPhoto(entry){
     return null;
   }
 }
+async function addPhotoBatch(entries){
+  try{
+    const res = await apiSend("addPhotoBatch", { entries });
+    if(!res.ok){
+      if(isSessionError(res.error)){ handleSessionExpired(); return null; }
+      console.warn("Gagal menambah batch foto: " + res.error);
+      return null;
+    }
+    return res;
+  } catch(err){
+    console.error("Gagal menambah batch foto: " + err);
+    return null;
+  }
+}
 async function deletePhoto(id){
   showLoading('Menghapus foto...');
   try{
