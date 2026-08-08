@@ -737,6 +737,12 @@ function selectAsset(id, mode) {
   
   // Buka drawer foto secara otomatis saat aset dipilih
   openFotoModal(a.id, a.props.kode_aset || a.id);
+
+  // Otomatis scroll ke atas (area peta) agar langsung terlihat di mobile maupun desktop
+  const mapElement = document.querySelector('.main') || document.getElementById('map');
+  if (mapElement) {
+    mapElement.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 }
 
 function updateToggleButtons() {
