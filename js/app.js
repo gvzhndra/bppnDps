@@ -182,11 +182,31 @@ function statusBadgesHtml(props) {
 // Inisialisasi Peta Leaflet (zoomControl: false agar tidak tumpang tindih dengan toggle foto di kiri)
 const map = L.map('map', { scrollWheelZoom: true, zoomControl: false }).setView([-8.65, 115.22], 11);
 
-// Tile Layers (Pastel Carto Voyager sebagai default, Standar OSM, Satelit Esri)
+// Tile Layers (Pastel Carto Voyager sebagai default, Standar OSM, Satelit Esri) dengan optimasi performa buffer & subdomains
 const tileLayers = {
-  pastel: L.tileLayer(TILE_LAYERS.PASTEL.url, { attribution: TILE_LAYERS.PASTEL.attribution, maxZoom: 19 }),
-  streets: L.tileLayer(TILE_LAYERS.STREETS.url, { attribution: TILE_LAYERS.STREETS.attribution, maxZoom: 19 }),
-  satellite: L.tileLayer(TILE_LAYERS.SATELLITE.url, { attribution: TILE_LAYERS.SATELLITE.attribution, maxZoom: 19 })
+  pastel: L.tileLayer(TILE_LAYERS.PASTEL.url, {
+    attribution: TILE_LAYERS.PASTEL.attribution,
+    subdomains: TILE_LAYERS.PASTEL.subdomains || 'abcd',
+    maxZoom: 19,
+    keepBuffer: 4,
+    updateWhenIdle: true,
+    updateWhenZooming: false
+  }),
+  streets: L.tileLayer(TILE_LAYERS.STREETS.url, {
+    attribution: TILE_LAYERS.STREETS.attribution,
+    subdomains: TILE_LAYERS.STREETS.subdomains || 'abc',
+    maxZoom: 19,
+    keepBuffer: 4,
+    updateWhenIdle: true,
+    updateWhenZooming: false
+  }),
+  satellite: L.tileLayer(TILE_LAYERS.SATELLITE.url, {
+    attribution: TILE_LAYERS.SATELLITE.attribution,
+    maxZoom: 19,
+    keepBuffer: 4,
+    updateWhenIdle: true,
+    updateWhenZooming: false
+  })
 };
 
 let currentTileLayerKey = 'pastel';
