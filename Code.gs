@@ -106,7 +106,7 @@ function getSession_(token) {
     const parts = token.split('_');
     if (parts.length >= 3) {
       const username = parts[0];
-      const role = parts[1];
+      const role = String(parts[1] || '').toLowerCase().trim();
       if (username && (role === 'admin' || role === 'viewer')) {
         const fallbackSession = { username: username, role: role, nama: username };
         try { cache.put('session_' + token, JSON.stringify(fallbackSession), SESSION_TTL_SECONDS); } catch(e) {}
@@ -164,6 +164,11 @@ function doGet(e) {
   try {
     const params = (e && e.parameter) || {};
     const action = params.action || 'getAset';
+
+    if (action === 'login') {
+      const result = login_(params.username, params.password);
+      return jsonResponse_(Object.assign({ ok: true }, result));
+    }
 
     // TEMPORARY DEBUG: inspect sheet headers & first 3 rows without auth
     if (action === 'debugHeaders') {
