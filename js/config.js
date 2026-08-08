@@ -3,6 +3,29 @@
 const API_URL = "https://script.google.com/macros/s/AKfycbxknDGyfi-ZhF5kA6g52a4pJM30lzexMdL9OdPM2xMLdYfhUvwOMkYZPNr_P8OaDgi_/exec";
 // =================================================
 
+// Konfigurasi Basemap Peta (Pastel Voyager, Standar OSM, Satelit Esri)
+const TILE_LAYERS = {
+  PASTEL: {
+    name: "Pastel",
+    icon: "🗺️",
+    url: 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="https://carto.com/attributions">CARTO</a>'
+  },
+  STREETS: {
+    name: "Standar",
+    icon: "🛣️",
+    url: 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
+  },
+  SATELLITE: {
+    name: "Satelit",
+    icon: "🛰️",
+    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
+    attribution: 'Tiles &copy; Esri'
+  }
+};
+
+
 // Warna badge untuk status utama
 const statusColor = {
   "Dalam Penitipan": "#4C8C3F"

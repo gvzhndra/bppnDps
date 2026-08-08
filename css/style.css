@@ -57,6 +57,94 @@
   .floating-right { right: 36px; }
   .toggle-icon { font-size: 14px; font-weight: bold; line-height: 1; transition: transform 0.2s ease; }
 
+  /* ---- Floating Map Control Bar (Center Top) ---- */
+  .map-floating-bar {
+    position: absolute;
+    top: 12px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 500;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    background: rgba(255, 255, 255, 0.96);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid var(--border);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+    padding: 4px 6px;
+    border-radius: 30px;
+    user-select: none;
+    transition: all 0.2s ease;
+  }
+  .map-zoom-group {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+  }
+  .map-ctrl-btn {
+    background: transparent;
+    border: none;
+    border-radius: 50%;
+    width: 30px;
+    height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: var(--text);
+    padding: 0;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .map-ctrl-btn:hover {
+    background: #EBF1F6;
+    color: var(--navy);
+    transform: scale(1.08);
+  }
+  .map-ctrl-btn:active {
+    transform: scale(0.92);
+  }
+  .map-bar-divider {
+    width: 1px;
+    height: 18px;
+    background: var(--border);
+    margin: 0 4px;
+  }
+  .map-layer-group {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+  }
+  .map-layer-btn {
+    background: transparent;
+    border: none;
+    border-radius: 20px;
+    padding: 5px 11px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--text-mut);
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    transition: all 0.2s ease;
+  }
+  .map-layer-btn .layer-icon {
+    font-size: 13px;
+    line-height: 1;
+  }
+  .map-layer-btn:hover {
+    background: #F1F5F9;
+    color: var(--text);
+  }
+  .map-layer-btn.active {
+    background: var(--navy);
+    color: #fff;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(11, 44, 77, 0.25);
+  }
+
   .drawer-right {
     position:absolute;top:0;right:24px;width:400px;max-width:90vw;height:calc(100vh - 230px);
     background:var(--card);box-shadow:-4px 0 20px rgba(0,0,0,0.15);z-index:1000;
@@ -737,6 +825,21 @@
     .main{display:flex;flex-direction:column;gap:14px;padding:0 14px 14px;position:relative;}
     #map{height:360px;min-height:300px;border-radius:8px;order:1;}
     .floating-left, .floating-right{display:none !important;}
+    .map-floating-bar {
+      top: 8px;
+      padding: 3px 5px;
+      max-width: calc(100% - 24px);
+    }
+    .map-layer-btn {
+      padding: 4px 7px;
+      font-size: 11px;
+      gap: 3px;
+    }
+    .map-ctrl-btn {
+      width: 26px;
+      height: 26px;
+      font-size: 11px;
+    }
     .drawer-right, .drawer-left {
       position:static !important;
       width:100% !important;

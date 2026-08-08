@@ -179,9 +179,42 @@ function statusBadgesHtml(props) {
   return html;
 }
 
-// Inisialisasi Peta Leaflet
-const map = L.map('map', { scrollWheelZoom: true }).setView([-8.65, 115.22], 11);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
+// Inisialisasi Peta Leaflet (zoomControl: false agar tidak tumpang tindih dengan toggle foto di kiri)
+const map = L.map('map', { scrollWheelZoom: true, zoomControl: false }).setView([-8.65, 115.22], 11);
+
+// Tile Layers (Pastel Carto Voyager sebagai default, Standar OSM, Satelit Esri)
+const tileLayers = {
+  pastel: L.tileLayer(TILE_LAYERS.PASTEL.url, { attribution: TILE_LAYERS.PASTEL.attribution, maxZoom: 19 }),
+  streets: L.tileLayer(TILE_LAYERS.STREETS.url, { attribution: TILE_LAYERS.STREETS.attribution, maxZoom: 19 }),
+  satellite: L.tileLayer(TILE_LAYERS.SATELLITE.url, { attribution: TILE_LAYERS.SATELLITE.attribution, maxZoom: 19 })
+};
+
+let currentTileLayerKey = 'pastel';
+tileLayers.pastel.addTo(map);
+
+function switchTileLayer(layerKey) {
+  if (!tileLayers[layerKey] || currentTileLayerKey === layerKey) return;
+  map.removeLayer(tileLayers[currentTileLayerKey]);
+  tileLayers[layerKey].addTo(map);
+  currentTileLayerKey = layerKey;
+
+  document.querySelectorAll('.map-layer-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.getAttribute('data-layer') === layerKey);
+  });
+}
+
+// Event listener custom zoom buttons & basemap toggle
+const btnZoomIn = document.getElementById('btnZoomIn');
+const btnZoomOut = document.getElementById('btnZoomOut');
+if (btnZoomIn) btnZoomIn.addEventListener('click', () => map.zoomIn());
+if (btnZoomOut) btnZoomOut.addEventListener('click', () => map.zoomOut());
+
+document.querySelectorAll('.map-layer-btn').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    const layerKey = e.currentTarget.getAttribute('data-layer');
+    if (layerKey) switchTileLayer(layerKey);
+  });
+});
 
 // Invalidate size agar peta Leaflet menyesuaikan ukuran layar mobile saat load/resize
 window.addEventListener('resize', () => { setTimeout(() => map.invalidateSize(), 200); });
