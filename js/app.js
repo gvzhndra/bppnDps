@@ -1806,6 +1806,16 @@ if (btnLogout) {
   });
 }
 
+const btnBackLanding = document.getElementById('btn-back-landing');
+if (btnBackLanding) {
+  btnBackLanding.addEventListener('click', (e) => {
+    if (e) e.preventDefault();
+    clearSession();
+    sessionStorage.removeItem('bppn_disclaimer_agreed');
+    window.location.href = 'https://gvzhndra.github.io/landing_page_geospasial_dps/';
+  });
+}
+
 // Modal Persetujuan Akses Data
 // Mengembalikan Promise yang resolve saat user klik Setuju.
 // loadFromServer() baru dipanggil setelah promise ini resolve.

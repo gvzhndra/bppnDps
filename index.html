@@ -5,20 +5,26 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard Aset eks BPPN & PPA — KPKNL Denpasar</title>
-  <script src="js/config.js?v=18"></script>
-  <script src="js/auth.js?v=18"></script>
+  <script src="js/config.js?v=19"></script>
+  <script src="js/auth.js?v=19"></script>
   <script>guardDashboardPage();</script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.css" />
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet.draw/1.0.4/leaflet.draw.css" />
-  <link rel="stylesheet" href="css/style.css?v=18">
+  <link rel="stylesheet" href="css/style.css?v=19">
 </head>
 
 <body>
 
   <header>
-    <div>
-      <h1>Dashboard Aset eks BPPN & PPA</h1>
-      <p>Wilayah kerja KPKNL Denpasar</p>
+    <div class="header-brand-wrap">
+      <button class="btn-landing" id="btn-back-landing" title="Keluar dari sesi dan kembali ke Halaman Depan Portal">
+        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        <span>Halaman Depan</span>
+      </button>
+      <div>
+        <h1>Dashboard Aset eks BPPN & PPA</h1>
+        <p>Wilayah kerja KPKNL Denpasar</p>
+      </div>
     </div>
     <div style="display:flex;gap:8px;align-items:center;position:relative;">
       <span id="userInfo" style="font-size:12px;color:#C9D6E3;margin-right:4px;"></span>
