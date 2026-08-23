@@ -887,12 +887,27 @@ async function updateCatchmentAndPolaRuang(centerLatLng, radiusMeters, asset = n
       continue;
     }
     if (turf.booleanIntersects(circlePoly, item.feature)) {
-      intersectingFeatures.push(item.feature);
+      let featureToRender = item.feature;
+      let luasHa = 0;
 
-      const props = item.feature.properties || {};
+      try {
+        const clipped = turf.intersect(circlePoly, item.feature);
+        if (clipped && clipped.geometry) {
+          clipped.properties = Object.assign({}, item.feature.properties);
+          featureToRender = clipped;
+        }
+      } catch (e) {
+        // Fallback jika terjadi error topologi spasial
+      }
+
+      intersectingFeatures.push(featureToRender);
+
+      const props = featureToRender.properties || {};
       const namobj = props.NAMOBJ || 'Lain-lain';
       const color = getPolaRuangColor(namobj);
-      const luasHa = props.LUASHA || (turf.area(item.feature) / 10000);
+      const areaM2 = turf.area(featureToRender);
+      luasHa = areaM2 / 10000;
+      props._clippedAreaHa = luasHa;
 
       if (!statsMap[namobj]) {
         statsMap[namobj] = { namobj, count: 0, areaHa: 0, color, remark: props.REMARK || '-' };
@@ -910,17 +925,23 @@ async function updateCatchmentAndPolaRuang(centerLatLng, radiusMeters, asset = n
         color: color,
         weight: 1.5,
         fillColor: color,
-        fillOpacity: 0.35
+        fillOpacity: 0.45
       };
     },
     onEachFeature: function(feature, layer) {
       const p = feature.properties || {};
+      const areaText = p._clippedAreaHa ? (
+        p._clippedAreaHa >= 1 
+          ? p._clippedAreaHa.toFixed(2) + " ha" 
+          : Math.round(p._clippedAreaHa * 10000) + " m²"
+      ) : "-";
+
       const popupHtml = `
         <div class="leaflet-pola-popup">
           <h4>🗺️ ${escapeHtml(p.NAMOBJ || "Pola Ruang")}</h4>
           <div><b>Kab/Kota:</b> ${escapeHtml(p.WADMKK || "-")}</div>
           <div><b>Keterangan:</b> ${escapeHtml(p.REMARK || "-")}</div>
-          <div><b>Luas Zonasi:</b> ${p.LUASHA ? Number(p.LUASHA).toFixed(2) + " ha" : "-"}</div>
+          <div><b>Luas dalam Catchment:</b> ${areaText}</div>
         </div>
       `;
       layer.bindPopup(popupHtml);
