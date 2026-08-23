@@ -212,6 +212,16 @@ const tileLayers = {
 let currentTileLayerKey = 'pastel';
 tileLayers.pastel.addTo(map);
 
+// Leaflet Panes untuk Hirarki Z-Index (Layer Aset Selalu di Atas Overlay Pola Ruang & Catchment)
+map.createPane('catchmentPane');
+map.getPane('catchmentPane').style.zIndex = 410;
+
+map.createPane('polaRuangPane');
+map.getPane('polaRuangPane').style.zIndex = 420;
+
+map.createPane('assetPane');
+map.getPane('assetPane').style.zIndex = 650;
+
 function switchTileLayer(layerKey) {
   if (!tileLayers[layerKey] || currentTileLayerKey === layerKey) return;
   map.removeLayer(tileLayers[currentTileLayerKey]);
@@ -575,24 +585,64 @@ function getPrimaryColor(props) {
   return statusColor[props.status] || "#6B7280";
 }
 
+function createAssetPinMarker(a, isSelected) {
+  const color = getPrimaryColor(a.props);
+  return L.divIcon({
+    className: 'asset-pin-icon-wrap',
+    html: `
+      <div class="asset-pin-wrapper ${isSelected ? 'selected' : ''}">
+        <div class="asset-pin-pulse" style="background:${color}66;"></div>
+        <div class="asset-pin-body" style="background:${color};">
+          <span class="asset-pin-symbol">📍</span>
+        </div>
+      </div>
+    `,
+    iconSize: [32, 32],
+    iconAnchor: [16, 30]
+  });
+}
+
 function renderAll() {
   Object.values(leafletLayers).forEach(l => map.removeLayer(l));
   leafletLayers = {};
   const vis = visibleFeatures();
   vis.forEach(a => {
     const color = getPrimaryColor(a.props);
-    let layer;
+    const isSelected = a.id === selectedId;
+
     if (a.geomType === "point") {
       if (isValidPoint(a.point)) {
-        layer = L.circleMarker(a.point, { radius: 9, color: color, weight: 2, fillColor: color, fillOpacity: 0.7 }).addTo(map);
-        layer.on('click', () => selectAsset(a.id));
-        leafletLayers[a.id] = layer;
+        const icon = createAssetPinMarker(a, isSelected);
+        const marker = L.marker(a.point, { icon: icon, pane: 'assetPane' }).addTo(map);
+        marker.on('click', () => selectAsset(a.id));
+        leafletLayers[a.id] = marker;
       }
     } else {
       if (isValidPolygonCoords(a.coords)) {
-        layer = L.polygon(a.coords, { color: color, weight: 2, fillColor: color, fillOpacity: 0.35 }).addTo(map);
-        layer.on('click', () => selectAsset(a.id));
-        leafletLayers[a.id] = layer;
+        const polyStyle = isSelected ? {
+          color: '#F59E0B',
+          weight: 4.5,
+          fillColor: color,
+          fillOpacity: 0.65,
+          pane: 'assetPane'
+        } : {
+          color: color,
+          weight: 2.5,
+          fillColor: color,
+          fillOpacity: 0.4,
+          pane: 'assetPane'
+        };
+
+        const polyLayer = L.polygon(a.coords, polyStyle).addTo(map);
+        polyLayer.on('click', () => selectAsset(a.id));
+
+        const centroid = computeCentroid(a.coords);
+        const pinIcon = createAssetPinMarker(a, isSelected);
+        const pinMarker = L.marker(centroid, { icon: pinIcon, pane: 'assetPane' }).addTo(map);
+        pinMarker.on('click', () => selectAsset(a.id));
+
+        const layerGroup = L.layerGroup([polyLayer, pinMarker]).addTo(map);
+        leafletLayers[a.id] = layerGroup;
       }
     }
   });
@@ -718,12 +768,16 @@ function getAssetCoordinates(a) {
 function selectAsset(id, mode) {
   selectedId = id;
   panelMode = mode || 'view';
+  renderAll(); // Refresh markers to update selected highlight state & z-index
   const a = features.find(x => x.id === id);
   if (!a) return;
   const layer = leafletLayers[id];
   if (layer) {
     if (a.geomType === "point") { if (isValidPoint(a.point)) map.setView(a.point, Math.max(map.getZoom(), 15)); }
-    else if (isValidPolygonCoords(a.coords)) map.fitBounds(layer.getBounds(), { maxZoom: 16 });
+    else if (isValidPolygonCoords(a.coords)) {
+      const poly = layer.getLayers ? layer.getLayers()[0] : layer;
+      if (poly && poly.getBounds) map.fitBounds(poly.getBounds(), { maxZoom: 16 });
+    }
   }
   if (panelMode === 'edit') renderEditPanel(a);
   else renderViewPanel(a);
@@ -867,7 +921,8 @@ async function updateCatchmentAndPolaRuang(centerLatLng, radiusMeters, asset = n
     weight: 2.5,
     dashArray: '6, 6',
     fillColor: '#1D9E75',
-    fillOpacity: 0.08
+    fillOpacity: 0.08,
+    pane: 'catchmentPane'
   }).addTo(map);
 
   const geojson = await loadPolaRuangData();
@@ -919,6 +974,7 @@ async function updateCatchmentAndPolaRuang(centerLatLng, radiusMeters, asset = n
   }
 
   const polaLayer = L.geoJSON({ type: 'FeatureCollection', features: intersectingFeatures }, {
+    pane: 'polaRuangPane',
     style: function(feature) {
       const color = getPolaRuangColor(feature.properties?.NAMOBJ);
       return {
