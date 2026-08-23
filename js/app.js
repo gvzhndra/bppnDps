@@ -770,6 +770,463 @@ function updateToggleButtons() {
   }
 }
 
+// ====================================================
+// GIS CATCHMENT AREA, POLA RUANG BALI & ANALISIS HBU
+// ====================================================
+let polaRuangGeoJSON = null;
+let polaRuangBboxCache = [];
+let isPolaRuangLoading = false;
+
+let catchmentCircleLayer = null;
+let polaRuangLayerGroup = L.layerGroup().addTo(map);
+
+let currentCatchmentCenter = null;
+let currentCatchmentRadius = 1000; // default 1km (1000m)
+let isCatchmentActive = false;
+
+const POLA_RUANG_COLORS = {
+  'Kawasan Permukiman': '#F59E0B',
+  'Kawasan Pariwisata': '#EC4899',
+  'Kawasan Pertanian': '#84CC16',
+  'Kawasan Hutan Produksi': '#10B981',
+  'Kawasan Konservasi': '#047857',
+  'Kawasan Perlindungan Setempat': '#14B8A6',
+  'Kawasan Ekosistem Mangrove': '#0D9488',
+  'Kawasan Peruntukan Industri': '#8B5CF6',
+  'Kawasan Pertambangan dan Energi': '#D97706',
+  'Badan Air': '#3B82F6',
+  'Kawasan Transportasi': '#64748B',
+  'Kawasan Pertahanan dan Keamanan': '#EF4444',
+  'Kawasan Perikanan': '#06B6D4',
+  'Kawasan Pergaraman': '#0284C7',
+  'Kawasan Pencadangan Konservasi di Laut': '#0EA5E9',
+  'Kawasan yang Memberikan Perlindungan terhadap Kawasan Bawahannya': '#059669'
+};
+
+function getPolaRuangColor(namobj) {
+  if (!namobj) return '#94A3B8';
+  for (const key in POLA_RUANG_COLORS) {
+    if (namobj.toLowerCase().includes(key.toLowerCase())) {
+      return POLA_RUANG_COLORS[key];
+    }
+  }
+  return '#94A3B8';
+}
+
+async function loadPolaRuangData() {
+  if (polaRuangGeoJSON) return polaRuangGeoJSON;
+  if (isPolaRuangLoading) {
+    while (isPolaRuangLoading) {
+      await new Promise(r => setTimeout(r, 100));
+    }
+    return polaRuangGeoJSON;
+  }
+  isPolaRuangLoading = true;
+  showLoading('Memuat data Pola Ruang Bali...');
+  try {
+    const res = await fetch('pola_ruang_bali_.json');
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const topoData = await res.json();
+    if (window.topojson && topoData.objects && topoData.objects.pola_ruang_bali) {
+      polaRuangGeoJSON = topojson.feature(topoData, topoData.objects.pola_ruang_bali);
+    } else if (topoData.type === 'FeatureCollection') {
+      polaRuangGeoJSON = topoData;
+    }
+    if (polaRuangGeoJSON && polaRuangGeoJSON.features && window.turf) {
+      polaRuangBboxCache = polaRuangGeoJSON.features.map(f => ({
+        bbox: turf.bbox(f),
+        feature: f
+      }));
+    }
+    return polaRuangGeoJSON;
+  } catch (err) {
+    console.error('Gagal memuat pola ruang:', err);
+    showToast('⚠️ Gagal memuat data Pola Ruang Bali');
+    return null;
+  } finally {
+    isPolaRuangLoading = false;
+    hideLoading();
+  }
+}
+
+async function updateCatchmentAndPolaRuang(centerLatLng, radiusMeters, asset = null) {
+  currentCatchmentCenter = centerLatLng;
+  currentCatchmentRadius = radiusMeters;
+  isCatchmentActive = true;
+
+  if (catchmentCircleLayer) {
+    map.removeLayer(catchmentCircleLayer);
+  }
+  polaRuangLayerGroup.clearLayers();
+
+  if (!centerLatLng) return;
+
+  catchmentCircleLayer = L.circle(centerLatLng, {
+    radius: radiusMeters,
+    color: '#1D9E75',
+    weight: 2.5,
+    dashArray: '6, 6',
+    fillColor: '#1D9E75',
+    fillOpacity: 0.08
+  }).addTo(map);
+
+  const geojson = await loadPolaRuangData();
+  if (!geojson || !window.turf) return;
+
+  const centerPoint = turf.point([centerLatLng[1], centerLatLng[0]]);
+  const circlePoly = turf.circle(centerPoint, radiusMeters / 1000, { units: 'kilometers' });
+  const circleBbox = turf.bbox(circlePoly);
+
+  const intersectingFeatures = [];
+  const statsMap = {};
+  let totalAreaHa = 0;
+
+  for (const item of polaRuangBboxCache) {
+    if (item.bbox[0] > circleBbox[2] || item.bbox[2] < circleBbox[0] ||
+        item.bbox[1] > circleBbox[3] || item.bbox[3] < circleBbox[1]) {
+      continue;
+    }
+    if (turf.booleanIntersects(circlePoly, item.feature)) {
+      intersectingFeatures.push(item.feature);
+
+      const props = item.feature.properties || {};
+      const namobj = props.NAMOBJ || 'Lain-lain';
+      const color = getPolaRuangColor(namobj);
+      const luasHa = props.LUASHA || (turf.area(item.feature) / 10000);
+
+      if (!statsMap[namobj]) {
+        statsMap[namobj] = { namobj, count: 0, areaHa: 0, color, remark: props.REMARK || '-' };
+      }
+      statsMap[namobj].count += 1;
+      statsMap[namobj].areaHa += luasHa;
+      totalAreaHa += luasHa;
+    }
+  }
+
+  const polaLayer = L.geoJSON({ type: 'FeatureCollection', features: intersectingFeatures }, {
+    style: function(feature) {
+      const color = getPolaRuangColor(feature.properties?.NAMOBJ);
+      return {
+        color: color,
+        weight: 1.5,
+        fillColor: color,
+        fillOpacity: 0.35
+      };
+    },
+    onEachFeature: function(feature, layer) {
+      const p = feature.properties || {};
+      const popupHtml = `
+        <div class="leaflet-pola-popup">
+          <h4>🗺️ ${escapeHtml(p.NAMOBJ || "Pola Ruang")}</h4>
+          <div><b>Kab/Kota:</b> ${escapeHtml(p.WADMKK || "-")}</div>
+          <div><b>Keterangan:</b> ${escapeHtml(p.REMARK || "-")}</div>
+          <div><b>Luas Zonasi:</b> ${p.LUASHA ? Number(p.LUASHA).toFixed(2) + " ha" : "-"}</div>
+        </div>
+      `;
+      layer.bindPopup(popupHtml);
+    }
+  });
+
+  polaRuangLayerGroup.addLayer(polaLayer);
+  renderCatchmentStatsUI(statsMap, totalAreaHa, radiusMeters, asset);
+}
+
+function clearCatchmentArea() {
+  if (catchmentCircleLayer) {
+    map.removeLayer(catchmentCircleLayer);
+    catchmentCircleLayer = null;
+  }
+  polaRuangLayerGroup.clearLayers();
+  isCatchmentActive = false;
+}
+
+function renderCatchmentStatsUI(statsMap, totalAreaHa, radiusMeters, asset) {
+  const statsListEl = document.getElementById('polaRuangStatsList');
+  const countEl = document.getElementById('lblPolaRuangCount');
+  if (!statsListEl) return;
+
+  const items = Object.values(statsMap).sort((x, y) => y.areaHa - x.areaHa);
+  if (countEl) countEl.textContent = items.length + ' Zonasi Ditemukan';
+
+  if (items.length === 0) {
+    statsListEl.innerHTML = '<div class="small-note">Tidak ada zonasi pola ruang Bali pada radius ini.</div>';
+    return;
+  }
+
+  let html = '';
+  items.forEach(item => {
+    const pct = totalAreaHa > 0 ? Math.round((item.areaHa / totalAreaHa) * 100) : 0;
+    const displayArea = item.areaHa >= 1 ? item.areaHa.toFixed(2) + ' ha' : Math.round(item.areaHa * 10000) + ' m²';
+    html += `
+      <div class="pola-stat-item" title="${escapeHtml(item.remark)}">
+        <div class="pola-stat-top">
+          <div class="pola-name-wrap">
+            <span class="pola-color-dot" style="background:${item.color};"></span>
+            <span>${escapeHtml(item.namobj)}</span>
+          </div>
+          <div class="pola-area-val">${displayArea} (${pct}%)</div>
+        </div>
+        <div class="pola-bar-bg">
+          <div class="pola-bar-fill" style="width:${pct}%;background:${item.color};"></div>
+        </div>
+      </div>
+    `;
+  });
+  statsListEl.innerHTML = html;
+
+  if (asset && items.length > 0) {
+    autoSuggestHbuLegal(asset, items[0].namobj);
+  }
+}
+
+function renderCatchmentPanelUI(a) {
+  const container = document.getElementById('gisCatchmentContainer');
+  if (!container) return;
+
+  const coords = getAssetCoordinates(a);
+  if (!coords) {
+    container.innerHTML = `
+      <div class="gis-card-header">
+        <h4 class="gis-card-title">🌐 Catchment Area & Pola Ruang</h4>
+      </div>
+      <p class="small-note" style="color:var(--text-mut);">Aset belum memiliki koordinat lokasi. Tambahkan koordinat untuk mengaktifkan analisis Catchment Area.</p>
+    `;
+    return;
+  }
+
+  const isChecked = isCatchmentActive ? 'checked' : '';
+
+  container.innerHTML = `
+    <div class="gis-card-header">
+      <h4 class="gis-card-title">🌐 Catchment Area & Pola Ruang</h4>
+      <div class="gis-toggle-wrap">
+        <label class="gis-switch">
+          <input type="checkbox" id="chkToggleCatchment" ${isChecked}>
+          <span class="gis-slider"></span>
+        </label>
+        <span>${isCatchmentActive ? 'Aktif' : 'Matikan'}</span>
+      </div>
+    </div>
+    
+    <div id="catchmentContentArea" style="${isCatchmentActive ? 'display:block;' : 'display:none;'}">
+      <div class="radius-control-box">
+        <div class="radius-label-row">
+          <span>Radius Catchment:</span>
+          <span class="radius-val-badge" id="lblRadiusVal">${currentCatchmentRadius >= 1000 ? (currentCatchmentRadius/1000) + ' km' : currentCatchmentRadius + ' m'}</span>
+        </div>
+        <input type="range" min="250" max="5000" step="250" value="${currentCatchmentRadius}" class="radius-range-slider" id="rngCatchmentRadius">
+        
+        <div class="radius-preset-group">
+          <button class="radius-preset-btn ${currentCatchmentRadius === 250 ? 'active' : ''}" data-radius="250">250m</button>
+          <button class="radius-preset-btn ${currentCatchmentRadius === 500 ? 'active' : ''}" data-radius="500">500m</button>
+          <button class="radius-preset-btn ${currentCatchmentRadius === 1000 ? 'active' : ''}" data-radius="1000">1 km</button>
+          <button class="radius-preset-btn ${currentCatchmentRadius === 2000 ? 'active' : ''}" data-radius="2000">2 km</button>
+          <button class="radius-preset-btn ${currentCatchmentRadius === 3000 ? 'active' : ''}" data-radius="3000">3 km</button>
+          <button class="radius-preset-btn ${currentCatchmentRadius === 5000 ? 'active' : ''}" data-radius="5000">5 km</button>
+        </div>
+      </div>
+
+      <div style="font-size:12px;font-weight:600;color:var(--navy);margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;">
+        <span>Distribusi Pola Ruang (Bali)</span>
+        <span id="lblPolaRuangCount" style="font-size:11px;font-weight:normal;color:var(--text-mut);"></span>
+      </div>
+      <div id="polaRuangStatsList" class="pola-stats-list">
+        <div class="small-note">Memuat analisis spasial...</div>
+      </div>
+    </div>
+  `;
+
+  const chkToggle = document.getElementById('chkToggleCatchment');
+  if (chkToggle) {
+    chkToggle.addEventListener('change', (e) => {
+      if (e.target.checked) {
+        updateCatchmentAndPolaRuang(coords, currentCatchmentRadius, a);
+      } else {
+        clearCatchmentArea();
+      }
+      renderCatchmentPanelUI(a);
+    });
+  }
+
+  const rngRadius = document.getElementById('rngCatchmentRadius');
+  if (rngRadius) {
+    rngRadius.addEventListener('input', (e) => {
+      const val = parseInt(e.target.value, 10);
+      currentCatchmentRadius = val;
+      const lbl = document.getElementById('lblRadiusVal');
+      if (lbl) lbl.textContent = val >= 1000 ? (val / 1000) + ' km' : val + ' m';
+    });
+    rngRadius.addEventListener('change', (e) => {
+      const val = parseInt(e.target.value, 10);
+      currentCatchmentRadius = val;
+      if (isCatchmentActive) {
+        updateCatchmentAndPolaRuang(coords, currentCatchmentRadius, a);
+      }
+    });
+  }
+
+  document.querySelectorAll('.radius-preset-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const r = parseInt(e.currentTarget.getAttribute('data-radius'), 10);
+      if (r) {
+        currentCatchmentRadius = r;
+        if (isCatchmentActive) {
+          updateCatchmentAndPolaRuang(coords, currentCatchmentRadius, a);
+        }
+        renderCatchmentPanelUI(a);
+      }
+    });
+  });
+
+  if (isCatchmentActive) {
+    updateCatchmentAndPolaRuang(coords, currentCatchmentRadius, a);
+  }
+}
+
+function autoSuggestHbuLegal(a, topZoneName) {
+  if (!a.props.hbu_legal) {
+    a.props.hbu_legal = 'Dominan ' + topZoneName;
+    const el = document.getElementById('hbuPillarLegalText');
+    if (el) el.textContent = a.props.hbu_legal;
+  }
+}
+
+function renderHbuPanelUI(a) {
+  const container = document.getElementById('gisHbuContainer');
+  if (!container) return;
+
+  const currentRekomendasi = a.props.hbu_rekomendasi || 'Belum Di-analisis';
+  const legalText = a.props.hbu_legal || 'Memerlukan Analisis Pola Ruang';
+  const fisikText = a.props.hbu_fisik || 'Dapat Diakses & Topografi Memadai';
+  const finansialText = a.props.hbu_finansial || 'Potensi Nilai Optimal';
+  const produktivitasText = a.props.hbu_produktivitas || currentRekomendasi;
+  const catatanText = a.props.hbu_catatan || '';
+
+  const editButton = isAdmin() ? `
+    <button class="radius-preset-btn" id="btnToggleHbuEdit" style="font-size:11px;padding:3px 8px;">
+      ✏️ Edit HBU
+    </button>
+  ` : '';
+
+  container.innerHTML = `
+    <div class="gis-card-header">
+      <h4 class="gis-card-title">📊 Analisis Highest & Best Use (HBU)</h4>
+      ${editButton}
+    </div>
+
+    <div class="hbu-badge-hero">
+      <span>🏆 HBU Utama:</span>
+      <span>${escapeHtml(currentRekomendasi)}</span>
+    </div>
+
+    <div class="hbu-grid">
+      <div class="hbu-pillar-card">
+        <div class="hbu-pillar-title">⚖️ 1. Kelayakan Legal</div>
+        <div class="hbu-pillar-text" id="hbuPillarLegalText">${escapeHtml(legalText)}</div>
+      </div>
+      <div class="hbu-pillar-card">
+        <div class="hbu-pillar-title">📐 2. Kelayakan Fisik</div>
+        <div class="hbu-pillar-text">${escapeHtml(fisikText)}</div>
+      </div>
+      <div class="hbu-pillar-card">
+        <div class="hbu-pillar-title">💰 3. Kelayakan Finansial</div>
+        <div class="hbu-pillar-text">${escapeHtml(finansialText)}</div>
+      </div>
+      <div class="hbu-pillar-card">
+        <div class="hbu-pillar-title">🚀 4. Produktivitas Maksimal</div>
+        <div class="hbu-pillar-text">${escapeHtml(produktivitasText)}</div>
+      </div>
+    </div>
+
+    ${catatanText ? `
+      <div class="hbu-notes-box">
+        <strong>💡 Catatan Analisis HBU:</strong><br>
+        ${escapeHtml(catatanText)}
+      </div>
+    ` : ''}
+
+    <div id="hbuEditFormWrap" class="hbu-edit-form" style="display:none;">
+      <h5 style="margin:0 0 10px;font-size:12.5px;color:var(--navy);font-weight:700;">Edit Analisis HBU (Admin)</h5>
+      
+      <div class="hbu-field-group">
+        <label>Rekomendasi Penggunaan Terbaik (HBU Utama)</label>
+        <select id="hbuSelectRekomendasi">
+          <option value="Komersial / Pertokoan / Ruko" ${currentRekomendasi === 'Komersial / Pertokoan / Ruko' ? 'selected' : ''}>Komersial / Pertokoan / Ruko</option>
+          <option value="Residensial / Perumahan" ${currentRekomendasi === 'Residensial / Perumahan' ? 'selected' : ''}>Residensial / Perumahan</option>
+          <option value="Pariwisata / Hotel / Villa" ${currentRekomendasi === 'Pariwisata / Hotel / Villa' ? 'selected' : ''}>Pariwisata / Hotel / Villa</option>
+          <option value="Pergudangan / Logistik" ${currentRekomendasi === 'Pergudangan / Logistik' ? 'selected' : ''}>Pergudangan / Logistik</option>
+          <option value="Fasilitas Umum / Perkantoran Dinas" ${currentRekomendasi === 'Fasilitas Umum / Perkantoran Dinas' ? 'selected' : ''}>Fasilitas Umum / Perkantoran Dinas</option>
+          <option value="Ruang Terbuka Hijau / Pertanian" ${currentRekomendasi === 'Ruang Terbuka Hijau / Pertanian' ? 'selected' : ''}>Ruang Terbuka Hijau / Pertanian</option>
+          <option value="Lainnya" ${['Komersial / Pertokoan / Ruko','Residensial / Perumahan','Pariwisata / Hotel / Villa','Pergudangan / Logistik','Fasilitas Umum / Perkantoran Dinas','Ruang Terbuka Hijau / Pertanian'].indexOf(currentRekomendasi) === -1 && currentRekomendasi !== 'Belum Di-analisis' ? 'selected' : ''}>Lainnya (Tentukan Sendiri)</option>
+        </select>
+      </div>
+
+      <div class="hbu-field-group">
+        <label>1. Kelayakan Legal (Legal Permissibility)</label>
+        <input type="text" id="hbuInputLegal" value="${escapeHtml(legalText)}">
+      </div>
+
+      <div class="hbu-field-group">
+        <label>2. Kelayakan Fisik (Physical Possibility)</label>
+        <input type="text" id="hbuInputFisik" value="${escapeHtml(fisikText)}">
+      </div>
+
+      <div class="hbu-field-group">
+        <label>3. Kelayakan Finansial (Financial Feasibility)</label>
+        <input type="text" id="hbuInputFinansial" value="${escapeHtml(finansialText)}">
+      </div>
+
+      <div class="hbu-field-group">
+        <label>4. Produktivitas Maksimal (Maximum Productivity)</label>
+        <input type="text" id="hbuInputProduktivitas" value="${escapeHtml(produktivitasText)}">
+      </div>
+
+      <div class="hbu-field-group">
+        <label>Catatan & Pertimbangan HBU</label>
+        <textarea id="hbuInputCatatan" rows="3">${escapeHtml(catatanText)}</textarea>
+      </div>
+
+      <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:10px;">
+        <button class="radius-preset-btn" id="btnCancelHbuEdit">Batal</button>
+        <button class="primary" id="btnSaveHbuEdit" style="font-size:12px;padding:6px 12px;">Simpan HBU</button>
+      </div>
+    </div>
+  `;
+
+  if (isAdmin()) {
+    const btnToggle = document.getElementById('btnToggleHbuEdit');
+    const formWrap = document.getElementById('hbuEditFormWrap');
+    const btnCancel = document.getElementById('btnCancelHbuEdit');
+    const btnSave = document.getElementById('btnSaveHbuEdit');
+
+    if (btnToggle && formWrap) {
+      btnToggle.addEventListener('click', () => {
+        formWrap.style.display = formWrap.style.display === 'none' ? 'block' : 'none';
+      });
+    }
+    if (btnCancel && formWrap) {
+      btnCancel.addEventListener('click', () => {
+        formWrap.style.display = 'none';
+      });
+    }
+    if (btnSave) {
+      btnSave.addEventListener('click', async () => {
+        const rekomSelect = document.getElementById('hbuSelectRekomendasi').value;
+        a.props.hbu_rekomendasi = rekomSelect;
+        a.props.hbu_legal = document.getElementById('hbuInputLegal').value.trim();
+        a.props.hbu_fisik = document.getElementById('hbuInputFisik').value.trim();
+        a.props.hbu_finansial = document.getElementById('hbuInputFinansial').value.trim();
+        a.props.hbu_produktivitas = document.getElementById('hbuInputProduktivitas').value.trim();
+        a.props.hbu_catatan = document.getElementById('hbuInputCatatan').value.trim();
+
+        await persistAsset(a);
+        renderHbuPanelUI(a);
+        showToast('✓ Data HBU tersimpan');
+      });
+    }
+  }
+}
+
 function renderViewPanel(a) {
   const extraKeys = sheetHeaders.filter(h => RESERVED_COLUMNS.indexOf(h) === -1 && CORE_PROPS.indexOf(h) === -1);
   const extraSection = extraKeys.length ? `
@@ -798,7 +1255,6 @@ function renderViewPanel(a) {
   const keteranganKategoriRow = (a.props.status === "Dalam Penitipan" && a.props.kategori_penitipan === "Lain-lain" && a.props.keterangan_kategori)
     ? `<div class="view-row"><span class="view-label">Keterangan kategori</span><span class="view-value">${escapeHtml(a.props.keterangan_kategori)}</span></div>`
     : '';
-  const alasanRow = '';
   const linkFolderRow = a.props.link_folder
     ? `<div class="view-row"><span class="view-label">Folder berkas</span><span class="view-value"><a href="${escapeHtml(a.props.link_folder)}" target="_blank" rel="noopener" style="color:#1F78B4;">Link dokumen</a></span></div>`
     : '';
@@ -848,6 +1304,8 @@ function renderViewPanel(a) {
       </div>
     ` : '<div class="view-row"><span class="view-label">Buka di Peta</span><span class="view-value" style="color:var(--text-mut);">Belum ada koordinat</span></div>'}
     ${extraSection}
+    <div id="gisCatchmentContainer" class="gis-card"></div>
+    <div id="gisHbuContainer" class="gis-card"></div>
     <div class="field" style="border-top:1px dashed var(--border);padding-top:10px;margin-top:10px;">
       <label style="font-weight:500;color:var(--text);margin-bottom:8px;display:block;">Riwayat dokumen</label>
       <div id="historyList" class="small-note">Memuat riwayat...</div>
@@ -855,6 +1313,9 @@ function renderViewPanel(a) {
     </div>
     ${actionButtons}
   `;
+
+  renderCatchmentPanelUI(a);
+  renderHbuPanelUI(a);
   if (isAdmin()) {
     document.getElementById('btnEditAsset').addEventListener('click', () => selectAsset(a.id, 'edit'));
     document.getElementById('btnDeleteAsset').addEventListener('click', () => {

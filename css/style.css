@@ -1059,4 +1059,312 @@
   border-color: var(--navy-dark);
 }
 
+/* ====================================================
+   Catchment Area, Pola Ruang Overlay & Analisis HBU
+   ==================================================== */
+.gis-card {
+  background: #FFFFFF;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 14px;
+  margin-top: 14px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.gis-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #E2E8F0;
+}
+
+.gis-card-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: var(--navy);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+}
+
+.gis-toggle-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.gis-switch {
+  position: relative;
+  display: inline-block;
+  width: 36px;
+  height: 20px;
+}
+
+.gis-switch input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.gis-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background-color: #CBD5E1;
+  transition: .3s;
+  border-radius: 20px;
+}
+
+.gis-slider:before {
+  position: absolute;
+  content: "";
+  height: 14px;
+  width: 14px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: .3s;
+  border-radius: 50%;
+}
+
+input:checked + .gis-slider {
+  background-color: #1D9E75;
+}
+
+input:checked + .gis-slider:before {
+  transform: translateX(16px);
+}
+
+/* Radius Control Box */
+.radius-control-box {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  margin-bottom: 12px;
+}
+
+.radius-label-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 6px;
+  font-size: 12px;
+  color: var(--text-mut);
+}
+
+.radius-val-badge {
+  font-weight: 700;
+  color: var(--navy);
+  background: #E0F2FE;
+  border: 1px solid #BAE6FD;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 11.5px;
+}
+
+.radius-range-slider {
+  width: 100%;
+  height: 5px;
+  border-radius: 5px;
+  background: #CBD5E1;
+  outline: none;
+  cursor: pointer;
+  accent-color: var(--navy);
+}
+
+.radius-preset-group {
+  display: flex;
+  gap: 4px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
+
+.radius-preset-btn {
+  padding: 3px 8px;
+  font-size: 11px;
+  border-radius: 4px;
+  border: 1px solid #CBD5E1;
+  background: #FFFFFF;
+  color: var(--text);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.radius-preset-btn:hover {
+  background: #E2E8F0;
+}
+
+.radius-preset-btn.active {
+  background: var(--navy);
+  color: #FFFFFF;
+  border-color: var(--navy);
+  font-weight: 600;
+}
+
+/* Distribution list */
+.pola-stats-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 260px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.pola-stat-item {
+  background: #FAFAFA;
+  border: 1px solid #F1F5F9;
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.pola-stat-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 11.5px;
+  margin-bottom: 4px;
+}
+
+.pola-name-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.pola-color-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+  flex-shrink: 0;
+  border: 1px solid rgba(0,0,0,0.15);
+}
+
+.pola-area-val {
+  font-family: monospace;
+  font-weight: 600;
+  color: #475569;
+}
+
+.pola-bar-bg {
+  height: 6px;
+  background: #E2E8F0;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.pola-bar-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.4s ease;
+}
+
+/* HBU Section */
+.hbu-badge-hero {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: linear-gradient(135deg, #1E3A8A, #3B82F6);
+  color: #FFFFFF;
+  font-size: 13px;
+  font-weight: 700;
+  border-radius: 6px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 4px rgba(30, 58, 138, 0.2);
+}
+
+.hbu-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.hbu-pillar-card {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+
+.hbu-pillar-title {
+  font-size: 10.5px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748B;
+  margin-bottom: 3px;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.hbu-pillar-text {
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--text);
+  line-height: 1.35;
+}
+
+.hbu-notes-box {
+  background: #FFFBEB;
+  border: 1px solid #FDE68A;
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-size: 11.5px;
+  color: #92400E;
+  line-height: 1.4;
+  margin-bottom: 10px;
+}
+
+.hbu-edit-form {
+  background: #F1F5F9;
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  padding: 12px;
+  margin-top: 10px;
+}
+
+.hbu-field-group {
+  margin-bottom: 10px;
+}
+
+.hbu-field-group label {
+  display: block;
+  font-size: 11.5px;
+  font-weight: 600;
+  color: var(--navy);
+  margin-bottom: 4px;
+}
+
+.hbu-field-group select,
+.hbu-field-group input,
+.hbu-field-group textarea {
+  width: 100%;
+  font-size: 12px;
+}
+
+.leaflet-pola-popup {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.leaflet-pola-popup h4 {
+  margin: 0 0 6px;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--navy);
+}
+
 
