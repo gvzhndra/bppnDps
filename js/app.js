@@ -79,29 +79,23 @@ function isValidPolygonCoords(coords) {
 }
 
 function computeCentroid(coordsLatLng) {
-  if (!coordsLatLng || coordsLatLng.length < 3) {
-    return coordsLatLng && coordsLatLng[0] ? [Number(coordsLatLng[0][0]), Number(coordsLatLng[0][1])] : [0, 0];
+  if (!coordsLatLng || !Array.isArray(coordsLatLng) || coordsLatLng.length === 0) {
+    return [0, 0];
   }
-  const pts = coordsLatLng.map(c => [Number(c[1]), Number(c[0])]);
-  let area = 0, cx = 0, cy = 0;
-  const n = pts.length;
-  for (let i = 0; i < n; i++) {
-    const [x0, y0] = pts[i];
-    const [x1, y1] = pts[(i + 1) % n];
-    const cross = x0 * y1 - x1 * y0;
-    area += cross;
-    cx += (x0 + x1) * cross;
-    cy += (y0 + y1) * cross;
-  }
-  area = area / 2;
-  if (Math.abs(area) < 1e-12) {
-    const avgLat = coordsLatLng.reduce((s, c) => s + Number(c[0]), 0) / coordsLatLng.length;
-    const avgLng = coordsLatLng.reduce((s, c) => s + Number(c[1]), 0) / coordsLatLng.length;
-    return [avgLat, avgLng];
-  }
-  cx = cx / (6 * area);
-  cy = cy / (6 * area);
-  return [cy, cx];
+  let minLat = Infinity, maxLat = -Infinity, minLng = Infinity, maxLng = -Infinity;
+  coordsLatLng.forEach(c => {
+    if (Array.isArray(c) && c.length >= 2) {
+      const lat = Number(c[0]), lng = Number(c[1]);
+      if (!isNaN(lat) && !isNaN(lng) && !(lat === 0 && lng === 0)) {
+        if (lat < minLat) minLat = lat;
+        if (lat > maxLat) maxLat = lat;
+        if (lng < minLng) minLng = lng;
+        if (lng > maxLng) maxLng = lng;
+      }
+    }
+  });
+  if (minLat === Infinity || isNaN(minLat)) return [0, 0];
+  return [(minLat + maxLat) / 2, (minLng + maxLng) / 2];
 }
 
 function parseCoordsFromString(val) {
@@ -130,13 +124,21 @@ function googleMapsUrl(lat, lng) {
 
 function getAssetCoordinates(a) {
   if (!a) return null;
-  if (a.geomType === "polygon" && isValidPolygonCoords(a.coords)) {
+  // Prioritas utama: jika aset memiliki koordinat poligon, gunakan centroid poligon
+  if (isValidPolygonCoords(a.coords)) {
     return computeCentroid(a.coords);
   }
-  if (a.geomType === "point" && isValidPoint(a.point)) {
+  // Prioritas kedua: titik koordinat valid
+  if (isValidPoint(a.point)) {
     return [Number(a.point[0]), Number(a.point[1])];
   }
+  // Fallback: properti koordinat dari sheets/props
   if (a.props) {
+    const lat = Number(a.props.latitude || a.props.lat);
+    const lng = Number(a.props.longitude || a.props.lng || a.props.long);
+    if (!isNaN(lat) && !isNaN(lng) && !(lat === 0 && lng === 0)) {
+      return [lat, lng];
+    }
     for (const key in a.props) {
       const parsed = parseCoordsFromString(a.props[key]);
       if (parsed) return parsed;
@@ -743,26 +745,6 @@ function renderPagination(totalItems, totalPages) {
 
 function escapeHtml(str) {
   return String(str || '').replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
-}
-
-let panelMode = 'view';
-
-function getAssetCoordinates(a) {
-  if (!a) return null;
-  if (a.geomType === "point" && isValidPoint(a.point)) {
-    return [Number(a.point[0]), Number(a.point[1])];
-  }
-  if (a.geomType === "polygon" && isValidPolygonCoords(a.coords)) {
-    return computeCentroid(a.coords);
-  }
-  if (a.props) {
-    const lat = Number(a.props.latitude || a.props.lat);
-    const lng = Number(a.props.longitude || a.props.lng || a.props.long);
-    if (!isNaN(lat) && !isNaN(lng) && !(lat === 0 && lng === 0)) {
-      return [lat, lng];
-    }
-  }
-  return null;
 }
 
 function selectAsset(id, mode) {
