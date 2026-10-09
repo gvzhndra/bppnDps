@@ -394,10 +394,12 @@ function getPhotosData_(assetId) {
 
   if (idxAsset === -1 || idxUrl === -1) return [];
 
-  const targetAssetIdStr = String(assetId || '').trim().toLowerCase();
+  const targetAssetIdStr = String(assetId || '').trim();
+  if (!targetAssetIdStr) return [];
 
-  // Cari kode_aset dari tab SHEET_ASET jika ada
+  // Cari kode_aset dan id sistem dari tab SHEET_ASET jika ada
   let targetKodeAsetStr = '';
+  let targetSystemIdStr = '';
   try {
     const asetSheet = getSheet_(SHEET_ASET);
     if (asetSheet) {
@@ -408,8 +410,11 @@ function getPhotosData_(assetId) {
         const aIdxKode = aHeaders.findIndex(function(h) { return h === 'kode_aset' || h === 'kode aset'; });
         if (aIdxId !== -1 && aIdxKode !== -1) {
           for (let k = 1; k < asetData.length; k++) {
-            if (String(asetData[k][aIdxId]).trim().toLowerCase() === targetAssetIdStr) {
-              targetKodeAsetStr = String(asetData[k][aIdxKode] || '').trim().toLowerCase();
+            const rowId = String(asetData[k][aIdxId] || '').trim();
+            const rowKode = String(asetData[k][aIdxKode] || '').trim();
+            if (rowId.toLowerCase() === targetAssetIdStr.toLowerCase() || (rowKode && rowKode.toLowerCase() === targetAssetIdStr.toLowerCase())) {
+              targetSystemIdStr = rowId;
+              targetKodeAsetStr = rowKode;
               break;
             }
           }
@@ -418,26 +423,28 @@ function getPhotosData_(assetId) {
     }
   } catch(e) {}
 
+  // Kumpulan ID / Kode aset yang valid dicocokkan (Exact Match)
+  const validMatches = {};
+  function addMatchKey(key) {
+    if (!key) return;
+    const clean = String(key).trim().toLowerCase();
+    if (clean) {
+      validMatches[clean] = true;
+      validMatches[clean.replace(/\s+/g, '')] = true;
+    }
+  }
+
+  addMatchKey(targetAssetIdStr);
+  addMatchKey(targetSystemIdStr);
+  addMatchKey(targetKodeAsetStr);
+
   const rows = data.slice(1);
   return rows
     .filter(function (row) {
-      const val = String(row[idxAsset] || '').trim().toLowerCase();
-      if (!val) return false;
-
-      // 1. Exact match ID Sistem atau Kode Aset
-      if (val === targetAssetIdStr) return true;
-      if (targetKodeAsetStr && val === targetKodeAsetStr) return true;
-
-      // 2. Contains match
-      if (val.includes(targetAssetIdStr) || targetAssetIdStr.includes(val)) return true;
-      if (targetKodeAsetStr && (val.includes(targetKodeAsetStr) || targetKodeAsetStr.includes(val))) return true;
-
-      // 3. Prefix match untuk ID truncated (misal A1783838...)
-      if (val.length >= 6 && targetAssetIdStr.length >= 6 && val.substring(0, 8) === targetAssetIdStr.substring(0, 8)) {
-        return true;
-      }
-
-      return false;
+      const rawVal = String(row[idxAsset] || '').trim().toLowerCase();
+      if (!rawVal) return false;
+      const cleanVal = rawVal.replace(/\s+/g, '');
+      return !!(validMatches[rawVal] || validMatches[cleanVal]);
     })
     .map(function (row) {
       return {

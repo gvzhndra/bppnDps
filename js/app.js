@@ -1636,6 +1636,7 @@ var _fotoModalState = { assetId: null, assetName: '', photos: [] };
 async function openFotoModal(assetId, assetName) {
   _fotoModalState.assetId = assetId;
   _fotoModalState.assetName = assetName;
+  _fotoModalState.photos = [];
 
   var drawer = document.getElementById('fotoDrawer');
   var titleEl = document.getElementById('fotoModalTitle');
@@ -1684,6 +1685,8 @@ async function loadAndRenderFotoModal(assetId) {
   if (!body) return;
 
   var photos = await fetchPhotos(assetId);
+  // Hindari race condition jika user berpindah ke aset lain sebelum fetch selesai
+  if (_fotoModalState.assetId !== assetId) return;
   _fotoModalState.photos = photos;
   renderFotoModalBodyFromState();
 }
